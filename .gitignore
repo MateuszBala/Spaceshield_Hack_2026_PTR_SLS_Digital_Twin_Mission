@@ -10,3 +10,4 @@ venv/
 docs/challenge/astrodynamics-lectures/
 docs/challenge/studentbooks/
 .tmp/
+uv.lock
