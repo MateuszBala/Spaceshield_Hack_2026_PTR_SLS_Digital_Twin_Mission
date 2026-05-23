@@ -35,10 +35,16 @@ NIE dotykamy COULD, póki SHOULD nie są zrobione. To zabezpieczenie przed
 - [ ] API wystawia symulację: `SimRequest` → `SimResult` (HTTP/JSON).
 - [ ] Frontend: PIONOWY PLASTER end-to-end — zmiana parametru → przelicz →
       nowa trajektoria 2D + werdykt. (To jest złoty scenariusz demo.)
+      ZAKRES MUST: edycja WARTOŚCI parametrów istniejących stopni (masa paliwa,
+      ciąg, Isp, masa ładunku) przy USTALONEJ liczbie stopni z presetu. Bez UI
+      do dodawania/usuwania stopni — to wystarcza, by pokazać pętlę Digital Twina.
 - [ ] Gotowy preset rakiety („złoty przykład”), który NA PEWNO osiąga orbitę.
 - [ ] Prezentacja (slajdy + scenariusz wideo) gotowa do nagrania.
 
 ### SHOULD — mocno wzmacnia, jeśli MUST gotowe
+- [ ] Frontend: dodawanie/usuwanie stopni w UI (zmienna liczba stopni 1–4).
+      Wzmacnia demo: „2 stopnie nie dolatują → dodaję 3. → orbita osiągnięta”.
+      Kontrakt i silnik już to wspierają (stages: list 1–4); to praca tylko w UI.
 - [ ] Dashboard telemetrii: prędkość / wysokość / masa w czasie (Recharts).
 - [ ] Wizualizacja trajektorii dopracowana wizualnie (ładny wykres 2D).
 - [ ] Wykresy walidacyjne backendu (skrypt PNG + JSON; patrz sekcja 2 dół).
@@ -93,3 +99,5 @@ Format: `RRRR-MM-DD [Mn] — nazwa`. Jedna–dwie linie opisu.
   Zatwierdzona architektura (monorepo/uv), gotowy kontrakt dt_contracts
   (schematy + stałe SMAD + testy logiki), komplet instrukcji dla instancji
   (CLAUDE.md, copilot, commity). Wejście do pracy równoległej zabezpieczone.
+
+  
