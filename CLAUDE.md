@@ -6,10 +6,17 @@ na powodzenie misji — z naciskiem na optymalizację masy przy osiągnięciu or
 
 Ten plik ładuje się w KAŻDEJ sesji (przodek). Zawiera tylko reguły wspólne dla
 całego repo. Szczegóły pakietów są w `packages/*/CLAUDE.md` (ładowane leniwie).
+Zasady organizacji pamięci: `docs/architecture/CLAUDE_MD_STRATEGY.md`.
+
+## Model pracy
+Decyzje architektoniczne, plany i dokumentacja powstają na poziomie projektu
+(rozmowa z człowiekiem); IMPLEMENTACJA należy do instancji w worktree. Instancja
+realizuje zadania zgodnie z dokumentacją w `docs/` i regułami w CLAUDE.md, a nie
+wymyśla architektury od nowa.
 
 ## Architektura (stan bieżący)
 Monorepo + uv workspace. Cztery pakiety Python + wspólne schematy + frontend JS:
-- `packages/contracts/`      → `dt_contracts` — schematy Pydantic (źródło prawdy danych)
+- `packages/contracts/`      → `dt_contracts` — schematy Pydantic (źródło prawdy); GOTOWE
 - `packages/physics-engine/` → `dt_physics`   — czysta numeryka (NumPy/SciPy), bez HTTP
 - `packages/api/`            → `dt_api`        — FastAPI, cienka skorupa HTTP
 - `packages/ai/`            → `dt_ai`         — Monte Carlo / optymalizacja
@@ -32,13 +39,15 @@ Każda instancja pracuje w osobnym worktree i pisze TYLKO w swoim pakiecie:
 - Język: Python ≥ 3.12, jednostki w SI, układ inercjalny kartezjański.
 - Kanoniczny wektor stanu lotu: `[x, y, vx, vy, m]`. Nie wprowadzaj wariantów.
 - Dane przepływające między pakietami MUSZĄ być instancjami schematów `dt_contracts`.
+- Stałe fizyczne i progi (μ, R, g0, granice) pochodzą z `dt_contracts.constants`
+  — jedno źródło prawdy, nie wpisuj własnych.
 - Silnik fizyczny to czyste funkcje `params → wynik` — bez efektów ubocznych, bez I/O sieci.
 - Werdykt o orbicie liczony z elementów keplerowskich (ε, e, perygeum), nie z chwilowej wysokości.
 
 ## Komendy
 - `uv sync`                      — instalacja środowiska (generuje uv.lock)
 - `uv run pytest`                — wszystkie testy (testpaths: packages, tests)
-- `uv run pytest packages/physics-engine` — testy jednego pakietu
+- `uv run --package physics-engine pytest` — testy jednego członu workspace
 - `uv run ruff check .`          — lint (line-length 100)
 - frontend: `cd frontend && npm install && npm run dev`
 
@@ -56,3 +65,4 @@ Każda instancja pracuje w osobnym worktree i pisze TYLKO w swoim pakiecie:
 - Commity: patrz `docs/rules/COMMIT_CONVENTIONS.md`.
 - Nazwy importów pakietów zawsze z prefiksem `dt_` (np. `import dt_physics`).
 - Nowa decyzja architektoniczna = nowy plik w `docs/decisions/` (ADR).
+- CLAUDE.md mówi CO ROBIĆ; pełne uzasadnienia („dlaczego") żyją w ADR-ach.
