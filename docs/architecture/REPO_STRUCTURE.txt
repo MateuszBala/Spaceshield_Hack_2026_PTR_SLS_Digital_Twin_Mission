@@ -1,6 +1,6 @@
-Generated (UTC): 2026-05-23T21:49:07Z
+Generated (UTC): 2026-05-23T22:21:52Z
 Git branch: main
-Git HEAD: 23f1de0
+Git HEAD: 3518d27
 
 === DIRECTORY TREE ===
 .
@@ -34,8 +34,12 @@ Git HEAD: 23f1de0
 |   |-- goal
 |   |   `-- PROGRESS.md
 |   |-- PRESENTATION_OUTLINE.md
-|   `-- rules
-|       `-- COMMIT_CONVENTIONS.md
+|   |-- rules
+|   |   `-- COMMIT_CONVENTIONS.md
+|   `-- tasks
+|       |-- BRIEF-api-01-vertical-slice.md
+|       |-- BRIEF-engine-01-vertical-slice.md
+|       `-- BRIEF-frontend-01-vertical-slice.md
 |-- frontend
 |   |-- CLAUDE.md
 |   |-- .gitkeep
@@ -75,6 +79,7 @@ Git HEAD: 23f1de0
 |   |   |-- src
 |   |   |   `-- dt_contracts
 |   |   |       |-- api_messages.py
+|   |   |       |-- _base.py
 |   |   |       |-- constants.py
 |   |   |       |-- __init__.py
 |   |   |       |-- rocket.py
@@ -90,27 +95,23 @@ Git HEAD: 23f1de0
 |       |       `-- __init__.py
 |       `-- tests
 |           `-- __init__.py
-|-- protos
-|   `-- .gitkeep
 |-- pyproject.toml
-|-- pyproject.toml.bak
 |-- README.md
 |-- runtime-configs
 |   `-- .gitkeep
-`-- scripts
-    |-- bootstrap
-    |   |-- ENVIRONMENT_SETUP.md
-    |   `-- init_environment.sh
-    |-- dev
-    |   |-- dump_repo_structure.sh
-    |   |-- .gitkeep
-    |   `-- install_qpdf.sh
-    |-- ops
-    |   `-- .gitkeep
-    |-- proto
-    |   `-- .gitkeep
-    `-- systemd
-        `-- .gitkeep
+|-- scripts
+|   |-- bootstrap
+|   |   |-- ENVIRONMENT_SETUP.md
+|   |   `-- init_environment.sh
+|   |-- dev
+|   |   |-- dump_repo_structure.sh
+|   |   |-- .gitkeep
+|   |   `-- install_qpdf.sh
+|   |-- ops
+|   |   `-- .gitkeep
+|   `-- systemd
+|       `-- .gitkeep
+`-- uv.lock
 
 === GIT TRACKED FILES ===
 .claude/CLAUDE.md
@@ -142,6 +143,9 @@ docs/decisions/.gitkeep
 docs/decisions/ADR-graceful-ai-degradation.md
 docs/goal/PROGRESS.md
 docs/rules/COMMIT_CONVENTIONS.md
+docs/tasks/BRIEF-api-01-vertical-slice.md
+docs/tasks/BRIEF-engine-01-vertical-slice.md
+docs/tasks/BRIEF-frontend-01-vertical-slice.md
 frontend/.gitkeep
 frontend/CLAUDE.md
 frontend/package.json
@@ -170,9 +174,7 @@ packages/physics-engine/CLAUDE.md
 packages/physics-engine/pyproject.toml
 packages/physics-engine/src/dt_physics/__init__.py
 packages/physics-engine/tests/__init__.py
-protos/.gitkeep
 pyproject.toml
-pyproject.toml.bak
 runtime-configs/.gitkeep
 scripts/bootstrap/ENVIRONMENT_SETUP.md
 scripts/bootstrap/init_environment.sh
@@ -180,10 +182,11 @@ scripts/dev/.gitkeep
 scripts/dev/dump_repo_structure.sh
 scripts/dev/install_qpdf.sh
 scripts/ops/.gitkeep
-scripts/proto/.gitkeep
 scripts/systemd/.gitkeep
 
 === UNTRACKED (not ignored) ===
+packages/contracts/src/dt_contracts/_base.py
+uv.lock
 
 === WORKSPACE MANIFESTS ===
 PATHS:
@@ -193,6 +196,7 @@ packages/api/pyproject.toml
 packages/contracts/pyproject.toml
 packages/physics-engine/pyproject.toml
 pyproject.toml
+uv.lock
 
 --- BEGIN FILE: frontend/package.json ---
 {
@@ -295,9 +299,9 @@ dev = ["pytest>=8", "ruff>=0.6"]--- END FILE: pyproject.toml ---
 
 
 === STATS ===
-     20 md
-     14 gitkeep
+     23 md
      13 py
+     12 gitkeep
       6 sh
       5 toml
       4 pdf
@@ -305,4 +309,3 @@ dev = ["pytest>=8", "ruff>=0.6"]--- END FILE: pyproject.toml ---
       1 txt
       1 pdf"
       1 gitignore
-      1 bak
