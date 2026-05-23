@@ -1,8 +1,11 @@
-# Virtual workspace root - bez [project], tylko organizacja czlonow.
+# Virtual workspace root — organizuje czlonow, sam nie jest pakietem.
 # Patrz: docs/architecture/ARCHITECTURE_DECISIONS.md
 [tool.uv.workspace]
 members = ["packages/*"]
 
+# Zrodla dziedziczone przez WSZYSTKICH czlonow: nasze pakiety pochodza
+# z workspace (edytowalne), nie z PyPI. Czlon deklaruje zaleznosc nazwa
+# dystrybucji w [project].dependencies; tutaj mowimy "szukaj jej w workspace".
 [tool.uv.sources]
 contracts      = { workspace = true }
 physics-engine = { workspace = true }
@@ -14,3 +17,6 @@ testpaths = ["packages", "tests"]
 
 [tool.ruff]
 line-length = 100
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]

@@ -1,9 +1,9 @@
 [project]
 name = "contracts"
 version = "0.1.0"
-description = "Wspoldzielone schematy danych (Pydantic)."
+description = "Wspoldzielone schematy danych (Pydantic) — zrodlo prawdy."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["pydantic>=2"]
 
 [build-system]
 requires = ["hatchling"]
