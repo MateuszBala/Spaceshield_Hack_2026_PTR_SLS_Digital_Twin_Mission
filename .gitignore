@@ -9,3 +9,4 @@ venv/
 .env
 docs/challenge/astrodynamics-lectures/
 docs/challenge/studentbooks/
+.tmp/
