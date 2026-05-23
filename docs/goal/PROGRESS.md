@@ -1,78 +1,95 @@
-# Stan projektu — podsumowanie (compact)
+# Rocket Digital Twin — Kompas projektu
 
-Skondensowany zapis decyzji i postępu. Służy jako punkt odniesienia niezależny
-od długości rozmowy. Pełne uzasadnienia: `docs/architecture/`.
+JEDYNE źródło prawdy o tym, dokąd idziemy i gdzie jesteśmy. Zastępuje dawne
+ROADMAP / CONCEPT / VERSION. Cztery sekcje: Wizja (statyczna), Cele (priorytety),
+Stan bieżący (nadpisywany), Dziennik (narastający). Gdy się zgubisz — wracasz tu.
 
-## Cel
-Cyfrowy bliźniak (Digital Twin) rakiety wynoszącej małego satelitę na LEO.
-Symulacja misji, zmiana parametrów, ponowne przebiegi, analiza wpływu — z
-naciskiem na optymalizację masy przy osiągnięciu orbity. Zespół: 1 osoba
-(fizyk, Python/C++/bash, Linux, MC), praca przez kilka instancji w git worktree.
+Deadline: ~12 h od założenia tego pliku. Wszystko poniżej jest podporządkowane
+temu ograniczeniu: najpierw rzeczy, bez których nie ma czego pokazać.
 
-## Decyzje narzędziowe
-- OpenRocket — NIE (symulator modelarski, nie zna orbity).
-- Scilab / MATLAB / Unity — NIE.
-- Cały projekt w open-source Pythonie. Frontend w React/TS.
+---
 
-## Architektura (zatwierdzona)
-Monorepo + uv workspace. Pięć elementów:
-- `packages/contracts/`      (dt_contracts) — schematy Pydantic, ŹRÓDŁO PRAWDY, read-only
-- `packages/physics-engine/` (dt_physics)   — czysta numeryka, biblioteka, bez HTTP
-- `packages/api/`            (dt_api)        — FastAPI, skorupa HTTP
-- `packages/ai/`            (dt_ai)         — Monte Carlo / optymalizacja
-- `frontend/`                — React/TS, POZA uv workspace
+## 1. Wizja
 
-Zależności: contracts ← physics-engine ← {api, ai}. Frontend ↔ api po HTTP/JSON
-(OpenAPI). api→engine i ai→engine przez import in-process (hybryda). engine nie
-zna api ani frontu.
+Cyfrowy bliźniak rakiety wynoszącej mały satelita na niską orbitę (LEO).
+Sednem jest PĘTLA Digital Twina: użytkownik zmienia parametr rakiety →
+symulacja przelicza misję → widać wpływ na powodzenie (orbita osiągnięta lub
+nie) i na trajektorię. To, co odróżnia projekt od zwykłego kalkulatora, to
+możliwość eksperymentowania na żywo i natychmiastowego widzenia skutków.
 
-## Fizyka / numeryka (zatwierdzone)
-- SI, układ inercjalny kartezjański wokół środka Ziemi.
-- Kanoniczny stan: [x, y, vx, vy, m] — jeden dla całego lotu.
-- Trzy etapy = trzy reżimy: (1) wznoszenie atmosferyczne z oporem ρ(h) + max-Q;
-  (2) wstawienie na orbitę, opór znikomy, g(h); (3) orbita — dwa ciała.
-- Maszyna stanów faz: każda faza ma własny RHS/solver/tolerancje; przejścia to
-  zdarzenia (terminal=True) modyfikujące stan (separacje = skok masy).
-- max-Q i próg wyłączenia oporu (D/mg<ε) jako ZDARZENIA, nie próbki siatki.
-- Werdykt o orbicie z elementów keplerowskich (ε, e, perygeum), nie z wysokości.
-- Etap 3 możliwy analitycznie z Keplera; propagacja symplektyczna (leapfrog) gdy potrzebna.
+Sukces za 12 h = działające demo tej pętli, które da się pokazać jurorom w 3
+minuty: oto rakieta, zmieniam parametr, przeliczam, widzę inny wynik.
 
-## Stos numeryczny silnika
-NumPy + SciPy (solve_ivp z events + optimize) → pandas (telemetria/CSV).
-Rezerwa wydajności: Numba na RHS → własny zwektoryzowany stepper na MC → C++/pybind11
-tylko jeśli profiler wskaże. Kolejność: poprawność najpierw, optymalizacja potem.
+---
 
-## Liczba stopni
-PARAMETRYCZNA (list[Stage], 1–4). Liczba stopni to silny parametr Δv → musi być
-zmienną, nie stałą.
+## 2. Cele (priorytety MUST / SHOULD / COULD)
 
-## Stan prac (artefakty gotowe, czekają na wdrożenie/akceptację)
-- [x] docs/architecture/ARCHITECTURE_DECISIONS.md
-- [x] docs/architecture/COMMUNICATION.md (3 diagramy Mermaid)
-- [x] Skrypt migracji src/ → packages/ (wykonany; struktura packages/ istnieje)
-- [x] Poprawione manifesty uv (root + 4 człony) — ZWERYFIKOWANE na żywym uv
-      (uv lock → Resolved 4 packages; zależności zgodne z architekturą).
-      STATUS: do wdrożenia w repo (obecny root pyproject.toml ma tylko
-      [tool.uv.workspace], brak [tool.uv.sources] i zależności).
-- [x] Główny CLAUDE.md (58 linii) — do wdrożenia w root.
-- [x] Szkielet kontraktu dt_contracts (5 plików, ~334 linie) — zweryfikowany
-      składniowo i strukturalnie. Granice walidacji celowo jako TODO.
+Reguła czasu: NIE dotykamy SHOULD, póki wszystkie MUST nie działają end-to-end.
+NIE dotykamy COULD, póki SHOULD nie są zrobione. To zabezpieczenie przed
+„czterema niedokończonymi kawałkami o 4 nad ranem".
 
-## Następne kroki
-1. Wdrożyć poprawione manifesty + uv sync (wygeneruje uv.lock, do zacommitowania).
-2. Wdrożyć główny CLAUDE.md i kontrakt dt_contracts.
-3. DECYZJE FIZYCZNE do wypełnienia TODO w kontrakcie:
-   - burn_time: liczony (propellant_mass/mass_flow) czy podawany jawnie?  ← OTWARTE
-   - górna granica Isp, kryterium orbity (docelowa wysokość, min. perygeum, max. e),
-     więzy optymalizacji, parametry gravity turn.
-   - Źródło wartości: książki w docs/challenge/studentbooks/ (SMAD, Simulating
-     Spacecraft Systems) — do przeczytania LUB wartości podane ręcznie.
-4. Po zamrożeniu kontraktu: napisać packages/*/CLAUDE.md + frontend/CLAUDE.md
-   (5 plików, ładowane leniwie per worktree).
-5. git worktree add ×4 → praca równoległa.
+### MUST — bez tego nie ma projektu
+- [ ] Silnik liczy poprawną trajektorię misji do LEO (model realistyczny;
+      fallback uproszczony dopuszczalny — patrz Stan/decyzje).
+- [ ] Werdykt orbitalny z elementów keplerowskich (orbita: tak/nie + powód).
+- [ ] API wystawia symulację: `SimRequest` → `SimResult` (HTTP/JSON).
+- [ ] Frontend: PIONOWY PLASTER end-to-end — zmiana parametru → przelicz →
+      nowa trajektoria 2D + werdykt. (To jest złoty scenariusz demo.)
+- [ ] Gotowy preset rakiety („złoty przykład”), który NA PEWNO osiąga orbitę.
+- [ ] Prezentacja (slajdy + scenariusz wideo) gotowa do nagrania.
 
-## Otwarte pytania do rozstrzygnięcia
-- burn_time: pochodna czy parametr? (wpływa na pole w Stage)
-- Czy czytam książki ze studentbooks/, czy podajesz liczby sam?
-- Drobne porządki: REPO_STRUCTURE.md vs .txt, rola .claude/CLAUDE.md i src/CLAUDE.md
-  (ten ostatni traci sens po migracji — src/ znika).
+### SHOULD — mocno wzmacnia, jeśli MUST gotowe
+- [ ] Dashboard telemetrii: prędkość / wysokość / masa w czasie (Recharts).
+- [ ] Wizualizacja trajektorii dopracowana wizualnie (ładny wykres 2D).
+- [ ] Wykresy walidacyjne backendu (skrypt PNG + JSON; patrz sekcja 2 dół).
+- [ ] Widoczne zdarzenia misji na osi czasu (separacje, max-Q, wypalenia).
+- [ ] Nagrane wideo demo (~3 min).
+
+### COULD — tylko jeśli zostanie czas
+- [ ] Pakiet AI: optymalizacja masy startowej przy warunku orbity.
+- [ ] Wizualizacja 3D trajektorii (Three.js).
+- [ ] Porównanie wielu scenariuszy obok siebie.
+
+### Wykresy walidacyjne — co pokazują (decyzja: wszystkie trzy)
+Jeden skrypt walidacyjny zrzuca PNG (dla człowieka / wideo) + JSON (dla analizy):
+1. Zachowanie energii i pędu w czasie (czy solver nie dryfuje numerycznie).
+2. Porównanie z równaniem Ciołkowskiego (czy budżet Δv się zgadza).
+3. Trajektoria + profile prędkości/wysokości (czy lot jest fizyczny).
+
+---
+
+## 3. Stan bieżący (NADPISYWANY — zawsze aktualny obraz)
+
+### Co gotowe
+- Architektura: monorepo + uv workspace, 4 pakiety + frontend. Zatwierdzona.
+- Kontrakt `dt_contracts`: schematy + stałe SMAD + testy (logika zweryfikowana;
+  runtime Pydantica do potwierdzenia pierwszym `uv run pytest`).
+- Komplet instrukcji: CLAUDE.md (root + 5 zagnieżdżonych), copilot-instructions,
+  konwencje commitów, strategia CLAUDE.md.
+
+### Decyzje wykonawcze (z tej sesji planistycznej)
+- Frontend: React + Vite. Wykresy: Recharts. Trajektoria: 2D (MUST), 3D (COULD).
+- Kolejność: PIONOWY PLASTER (cienka kolumna silnik→API→front), potem pogrubianie.
+  NIE „skończ silnik, potem API, potem front”.
+- Instancje: 2–3 równolegle. Pierwsza obsada pod plaster: silnik, API, frontend.
+  AI czeka (COULD). contracts read-only — bez instancji.
+- Fizyka: realistyczna jako cel, uproszczona jako JAWNY fallback (nie improwizacja).
+- Brak AI obsłużony przez graceful degradation: API zwraca „niedostępne”, front
+  chowa przycisk optymalizacji. Szczegóły: docs/decisions (ADR graceful AI).
+- Preset rakiety: parametryczny, ale z gotowym presetem startowym osiągającym orbitę.
+
+### Następny krok
+- Spisać briefy zadaniowe dla instancji (silnik / API / frontend) pod pionowy
+  plaster. To pierwszy realny task-level dokument.
+
+---
+
+## 4. Dziennik (NARASTAJĄCY — kamienie milowe, nie usuwać)
+
+Wpis = osiągnięty cel funkcjonalny (lub przygotowawczy na tym etapie).
+Format: `RRRR-MM-DD [Mn] — nazwa`. Jedna–dwie linie opisu.
+
+- 2026-05-23 [M1] — Fundament architektoniczny i kontrakt danych.
+  Zatwierdzona architektura (monorepo/uv), gotowy kontrakt dt_contracts
+  (schematy + stałe SMAD + testy logiki), komplet instrukcji dla instancji
+  (CLAUDE.md, copilot, commity). Wejście do pracy równoległej zabezpieczone.
