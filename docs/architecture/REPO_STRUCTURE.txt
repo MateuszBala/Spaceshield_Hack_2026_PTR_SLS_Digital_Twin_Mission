@@ -1,0 +1,152 @@
+Generated (UTC): 2026-05-23T18:40:30Z
+Git branch: main
+Git HEAD: a70e3f4
+
+=== DIRECTORY TREE ===
+.
+|-- .claude
+|   |-- agents
+|   |-- CLAUDE.md
+|   |-- commands
+|   |-- settings.json
+|   `-- settings.local.json
+|-- CLAUDE.md
+|-- configs
+|   `-- .gitkeep
+|-- docker
+|   `-- .gitkeep
+|-- docs
+|   |-- api
+|   |   `-- .gitkeep
+|   |-- architecture
+|   |   |-- ARCHITECTURE_DECISIONS.md
+|   |   |-- COMMUNICATION.md
+|   |   |-- .gitkeep
+|   |   `-- REPO_STRUCTURE.txt
+|   |-- challenge
+|   |   |-- GENERAL_TASK_SUMMARY.md
+|   |   |-- Satellite_Launch_System_ Digital Twin Mission.pdf
+|   |   `-- URL.md
+|   |-- decisions
+|   |   `-- .gitkeep
+|   |-- development
+|   |   `-- .gitkeep
+|   |-- goal
+|   |   |-- CONCEPT.md
+|   |   |-- PROGRESS.md
+|   |   `-- ROADMAP.md
+|   |-- rules
+|   |   `-- COMMIT_CONVENTIONS.md
+|   |-- runbooks
+|   |   `-- .gitkeep
+|   `-- version
+|       |-- CHANGELOG.md
+|       `-- VERSION.md
+|-- .github
+|   |-- copilot-instructions.md
+|   |-- get_review.sh
+|   `-- PULL_REQUEST_TEMPLATE.md
+|-- .gitignore
+|-- grafana
+|   `-- .gitkeep
+|-- init_repo_structure.sh
+|-- migrations
+|   `-- .gitkeep
+|-- protos
+|   `-- .gitkeep
+|-- README.md
+|-- runtime-configs
+|   `-- .gitkeep
+|-- scripts
+|   |-- bootstrap
+|   |   |-- ENVIRONMENT_SETUP.md
+|   |   `-- init_environment.sh
+|   |-- dev
+|   |   |-- dump_repo_structure.sh
+|   |   `-- .gitkeep
+|   |-- ops
+|   |   `-- .gitkeep
+|   |-- proto
+|   |   `-- .gitkeep
+|   `-- systemd
+|       `-- .gitkeep
+`-- tests
+    |-- .gitkeep
+    |-- integration
+    |   `-- __init__.py
+    |-- soak
+    |   `-- __init__.py
+    `-- unit
+        `-- __init__.py
+
+=== GIT TRACKED FILES ===
+.claude/CLAUDE.md
+.claude/settings.json
+.claude/settings.local.json
+.github/PULL_REQUEST_TEMPLATE.md
+.github/copilot-instructions.md
+.github/get_review.sh
+.gitignore
+CLAUDE.md
+Makefile
+README.md
+REPO_STRUCTURE.md
+configs/.gitkeep
+docker/.gitkeep
+docs/api/.gitkeep
+docs/architecture/.gitkeep
+docs/architecture/ARCHITECTURE_DECISIONS.md
+docs/architecture/COMMUNICATION.md
+docs/challenge/GENERAL_TASK_SUMMARY.md
+docs/challenge/Satellite_Launch_System_ Digital Twin Mission.pdf
+docs/challenge/URL.md
+docs/challenge/studentbooks/Design_Analysis_and_Test_of_a_High_Powered_Model_Rocket.pdf
+"docs/challenge/studentbooks/Jak_oderwa\304\207_si\304\231_od_ziemi_Adam_Ciupa.pdf"
+docs/challenge/studentbooks/Simulating_Spacecrafts_Systems.pdf
+docs/challenge/studentbooks/Space_Mission_Analysis_and_Design_3rd_Edition.pdf
+docs/decisions/.gitkeep
+docs/development/.gitkeep
+docs/goal/CONCEPT.md
+docs/goal/PROGRESS.md
+docs/goal/ROADMAP.md
+docs/rules/COMMIT_CONVENTIONS.md
+docs/runbooks/.gitkeep
+docs/version/CHANGELOG.md
+docs/version/VERSION.md
+grafana/.gitkeep
+init_repo_structure.sh
+migrations/.gitkeep
+protos/.gitkeep
+pyproject.toml
+runtime-configs/.gitkeep
+scripts/bootstrap/ENVIRONMENT_SETUP.md
+scripts/bootstrap/init_environment.sh
+scripts/dev/.gitkeep
+scripts/dev/dump_repo_structure.sh
+scripts/ops/.gitkeep
+scripts/proto/.gitkeep
+scripts/systemd/.gitkeep
+src/CLAUDE.md
+src/digital_twin/__init__.py
+tests/.gitkeep
+tests/integration/__init__.py
+tests/soak/__init__.py
+tests/unit/__init__.py
+
+=== UNTRACKED (not ignored) ===
+docs/architecture/REPO_STRUCTURE.txt
+
+=== WORKSPACE MANIFESTS ===
+(none)
+
+=== STATS ===
+     18 md
+     16 gitkeep
+      4 sh
+      4 py
+      4 pdf
+      2 json
+      1 toml
+      1 pdf"
+      1 Makefile
+      1 gitignore
