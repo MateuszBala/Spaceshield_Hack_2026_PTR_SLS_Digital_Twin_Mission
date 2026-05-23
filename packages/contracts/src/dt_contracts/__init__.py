@@ -1,0 +1,1 @@
+"""Wspoldzielone schematy danych (Pydantic)."""

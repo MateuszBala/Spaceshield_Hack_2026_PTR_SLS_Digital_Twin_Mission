@@ -1,0 +1,11 @@
+{
+  "name": "rocket-digital-twin-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React/TS frontend - parametry, sterowanie, wizualizacja 3D",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  }
+}
