@@ -1,6 +1,6 @@
-Generated (UTC): 2026-05-23T18:40:30Z
+Generated (UTC): 2026-05-23T19:13:33Z
 Git branch: main
-Git HEAD: a70e3f4
+Git HEAD: 169a97e
 
 === DIRECTORY TREE ===
 .
@@ -42,6 +42,10 @@ Git HEAD: a70e3f4
 |   `-- version
 |       |-- CHANGELOG.md
 |       `-- VERSION.md
+|-- frontend
+|   |-- .gitkeep
+|   |-- package.json
+|   `-- src
 |-- .github
 |   |-- copilot-instructions.md
 |   |-- get_review.sh
@@ -50,34 +54,57 @@ Git HEAD: a70e3f4
 |-- grafana
 |   `-- .gitkeep
 |-- init_repo_structure.sh
+|-- migrate_to_workspace.sh
 |-- migrations
 |   `-- .gitkeep
+|-- packages
+|   |-- ai
+|   |   |-- pyproject.toml
+|   |   |-- src
+|   |   |   `-- dt_ai
+|   |   |       `-- __init__.py
+|   |   `-- tests
+|   |       `-- __init__.py
+|   |-- api
+|   |   |-- pyproject.toml
+|   |   |-- src
+|   |   |   `-- dt_api
+|   |   |       `-- __init__.py
+|   |   `-- tests
+|   |       `-- __init__.py
+|   |-- contracts
+|   |   |-- pyproject.toml
+|   |   |-- src
+|   |   |   `-- dt_contracts
+|   |   |       `-- __init__.py
+|   |   `-- tests
+|   |       `-- __init__.py
+|   `-- physics-engine
+|       |-- pyproject.toml
+|       |-- src
+|       |   `-- dt_physics
+|       |       `-- __init__.py
+|       `-- tests
+|           `-- __init__.py
 |-- protos
 |   `-- .gitkeep
+|-- pyproject.toml
 |-- README.md
 |-- runtime-configs
 |   `-- .gitkeep
-|-- scripts
-|   |-- bootstrap
-|   |   |-- ENVIRONMENT_SETUP.md
-|   |   `-- init_environment.sh
-|   |-- dev
-|   |   |-- dump_repo_structure.sh
-|   |   `-- .gitkeep
-|   |-- ops
-|   |   `-- .gitkeep
-|   |-- proto
-|   |   `-- .gitkeep
-|   `-- systemd
-|       `-- .gitkeep
-`-- tests
-    |-- .gitkeep
-    |-- integration
-    |   `-- __init__.py
-    |-- soak
-    |   `-- __init__.py
-    `-- unit
-        `-- __init__.py
+`-- scripts
+    |-- bootstrap
+    |   |-- ENVIRONMENT_SETUP.md
+    |   `-- init_environment.sh
+    |-- dev
+    |   |-- dump_repo_structure.sh
+    |   `-- .gitkeep
+    |-- ops
+    |   `-- .gitkeep
+    |-- proto
+    |   `-- .gitkeep
+    `-- systemd
+        `-- .gitkeep
 
 === GIT TRACKED FILES ===
 .claude/CLAUDE.md
@@ -88,15 +115,14 @@ Git HEAD: a70e3f4
 .github/get_review.sh
 .gitignore
 CLAUDE.md
-Makefile
 README.md
-REPO_STRUCTURE.md
 configs/.gitkeep
 docker/.gitkeep
 docs/api/.gitkeep
 docs/architecture/.gitkeep
 docs/architecture/ARCHITECTURE_DECISIONS.md
 docs/architecture/COMMUNICATION.md
+docs/architecture/REPO_STRUCTURE.txt
 docs/challenge/GENERAL_TASK_SUMMARY.md
 docs/challenge/Satellite_Launch_System_ Digital Twin Mission.pdf
 docs/challenge/URL.md
@@ -113,9 +139,24 @@ docs/rules/COMMIT_CONVENTIONS.md
 docs/runbooks/.gitkeep
 docs/version/CHANGELOG.md
 docs/version/VERSION.md
+frontend/.gitkeep
+frontend/package.json
 grafana/.gitkeep
 init_repo_structure.sh
+migrate_to_workspace.sh
 migrations/.gitkeep
+packages/ai/pyproject.toml
+packages/ai/src/dt_ai/__init__.py
+packages/ai/tests/__init__.py
+packages/api/pyproject.toml
+packages/api/src/dt_api/__init__.py
+packages/api/tests/__init__.py
+packages/contracts/pyproject.toml
+packages/contracts/src/dt_contracts/__init__.py
+packages/contracts/tests/__init__.py
+packages/physics-engine/pyproject.toml
+packages/physics-engine/src/dt_physics/__init__.py
+packages/physics-engine/tests/__init__.py
 protos/.gitkeep
 pyproject.toml
 runtime-configs/.gitkeep
@@ -126,27 +167,110 @@ scripts/dev/dump_repo_structure.sh
 scripts/ops/.gitkeep
 scripts/proto/.gitkeep
 scripts/systemd/.gitkeep
-src/CLAUDE.md
-src/digital_twin/__init__.py
-tests/.gitkeep
-tests/integration/__init__.py
-tests/soak/__init__.py
-tests/unit/__init__.py
 
 === UNTRACKED (not ignored) ===
-docs/architecture/REPO_STRUCTURE.txt
 
 === WORKSPACE MANIFESTS ===
-(none)
+PATHS:
+frontend/package.json
+packages/ai/pyproject.toml
+packages/api/pyproject.toml
+packages/contracts/pyproject.toml
+packages/physics-engine/pyproject.toml
+pyproject.toml
+
+--- BEGIN FILE: frontend/package.json ---
+{
+  "name": "rocket-digital-twin-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React/TS frontend - parametry, sterowanie, wizualizacja 3D",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  }
+}
+--- END FILE: frontend/package.json ---
+
+--- BEGIN FILE: packages/ai/pyproject.toml ---
+[project]
+name = "ai"
+version = "0.1.0"
+description = "Backend AI - Monte Carlo i optymalizacja parametrow."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dt_ai"]
+--- END FILE: packages/ai/pyproject.toml ---
+
+--- BEGIN FILE: packages/api/pyproject.toml ---
+[project]
+name = "api"
+version = "0.1.0"
+description = "Backend HTTP (FastAPI) serwujacy dane do frontendu."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dt_api"]
+--- END FILE: packages/api/pyproject.toml ---
+
+--- BEGIN FILE: packages/contracts/pyproject.toml ---
+[project]
+name = "contracts"
+version = "0.1.0"
+description = "Wspoldzielone schematy danych (Pydantic)."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dt_contracts"]
+--- END FILE: packages/contracts/pyproject.toml ---
+
+--- BEGIN FILE: packages/physics-engine/pyproject.toml ---
+[project]
+name = "physics-engine"
+version = "0.1.0"
+description = "Silnik fizyczny - czysta numeryka (NumPy/SciPy)."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dt_physics"]
+--- END FILE: packages/physics-engine/pyproject.toml ---
+
+--- BEGIN FILE: pyproject.toml ---
+[tool.uv.workspace]
+members = ["packages/*"]
+--- END FILE: pyproject.toml ---
+
 
 === STATS ===
-     18 md
+     16 md
      16 gitkeep
-      4 sh
-      4 py
+      8 py
+      5 toml
+      5 sh
       4 pdf
-      2 json
-      1 toml
+      3 json
+      1 txt
       1 pdf"
-      1 Makefile
       1 gitignore
