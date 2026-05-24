@@ -118,6 +118,15 @@ Jeden skrypt walidacyjny zrzuca PNG (dla człowieka / wideo) + JSON (dla analizy
   „suwaka demo"). Po scaleniu do main → API i front domykają MUST na żywym
   plastrze. To zamyka kolumnę MUST end-to-end.
 
+### Zasoby wiedzy dla silnika
+- `docs/architecture/PHYSICS_THEORY_BASE.md` — zweryfikowana baza teorii: wzory
+  orbitalne ze slajdów astrodynamiki (wektor mimośrodu w 2D, energia, vis-viva,
+  perygeum, Kepler), tabela liczb kontrolnych (v_circ, okres, ε dla orbit LEO —
+  policzone numerycznie z μ/R), model oporu/gęstości, lista 7 „herezji" do
+  uniknięcia. Silnik liczy ze źródła, nie z pamięci.
+- `docs/tasks/GOLDEN_PRESET.md` — preset „złotej rakiety" (3 stopnie, Δv ideal
+  ≈ 13 846 m/s, marża ~2,7 km/s nad LEO).
+
 ### Briefy gotowe (oczekują na moment wdrożenia)
 - `BRIEF-engine-02-thickening.md` — silnik realizuje TERAZ.
 - `BRIEF-frontend-02.md` — czeka na żywy silnik (część A = domknięcie MUST).
