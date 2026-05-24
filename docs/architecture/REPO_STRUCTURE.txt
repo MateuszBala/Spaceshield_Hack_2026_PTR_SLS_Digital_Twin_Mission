@@ -1,6 +1,6 @@
-Generated (UTC): 2026-05-23T22:21:52Z
+Generated (UTC): 2026-05-24T09:06:47Z
 Git branch: main
-Git HEAD: 3518d27
+Git HEAD: b143f91
 
 === DIRECTORY TREE ===
 .
@@ -8,14 +8,9 @@ Git HEAD: 3518d27
 |   |-- agents
 |   |-- CLAUDE.md
 |   |-- commands
-|   |-- settings.json
-|   `-- settings.local.json
+|   `-- settings.json
 |-- CLAUDE.md
 |-- CLAUDE_MD_STRATEGY.md
-|-- configs
-|   `-- .gitkeep
-|-- docker
-|   `-- .gitkeep
 |-- docs
 |   |-- api
 |   |   `-- .gitkeep
@@ -23,6 +18,7 @@ Git HEAD: 3518d27
 |   |   |-- ARCHITECTURE_DECISIONS.md
 |   |   |-- COMMUNICATION.md
 |   |   |-- .gitkeep
+|   |   |-- PHYSICS_THEORY_BASE.md
 |   |   `-- REPO_STRUCTURE.txt
 |   |-- challenge
 |   |   |-- GENERAL_TASK_SUMMARY.md
@@ -31,31 +27,60 @@ Git HEAD: 3518d27
 |   |-- decisions
 |   |   |-- ADR-graceful-ai-degradation.md
 |   |   `-- .gitkeep
+|   |-- DESIGN_DECISIONS.md
 |   |-- goal
 |   |   `-- PROGRESS.md
+|   |-- PHYSICS_MODEL.md
 |   |-- PRESENTATION_OUTLINE.md
 |   |-- rules
 |   |   `-- COMMIT_CONVENTIONS.md
+|   |-- SYSTEM_OVERVIEW.md
 |   `-- tasks
 |       |-- BRIEF-api-01-vertical-slice.md
 |       |-- BRIEF-engine-01-vertical-slice.md
-|       `-- BRIEF-frontend-01-vertical-slice.md
+|       |-- BRIEF-engine-02-thickening.md
+|       |-- BRIEF-engine-03-gravity-turn.md
+|       |-- BRIEF-frontend-01-vertical-slice.md
+|       |-- BRIEF-frontend-02.md
+|       |-- BRIEF-frontend-visual-enrichment.md
+|       `-- GOLDEN_PRESET.md
 |-- frontend
 |   |-- CLAUDE.md
 |   |-- .gitkeep
+|   |-- index.html
 |   |-- package.json
-|   `-- src
+|   |-- package-lock.json
+|   |-- src
+|   |   |-- api
+|   |   |   `-- client.ts
+|   |   |-- App.tsx
+|   |   |-- components
+|   |   |   |-- MissionTimeline.tsx
+|   |   |   |-- OrbitalPlot.tsx
+|   |   |   |-- RocketForm.tsx
+|   |   |   |-- StageCard.tsx
+|   |   |   |-- TelemetryFieldChart.tsx
+|   |   |   |-- TelemetryHUD.tsx
+|   |   |   |-- TrajectoryChart.tsx
+|   |   |   `-- VerdictCard.tsx
+|   |   |-- data
+|   |   |   |-- preset.ts
+|   |   |   `-- syntheticResult.ts
+|   |   |-- index.css
+|   |   |-- main.tsx
+|   |   `-- types
+|   |       `-- contracts.ts
+|   |-- tsconfig.json
+|   |-- tsconfig.node.json
+|   `-- vite.config.ts
 |-- .github
 |   |-- copilot-instructions.md
 |   |-- get_review.sh
 |   `-- PULL_REQUEST_TEMPLATE.md
 |-- .gitignore
-|-- grafana
-|   `-- .gitkeep
+|-- golden_preset.json
 |-- init_repo_structure.sh
 |-- migrate_to_workspace.sh
-|-- migrations
-|   `-- .gitkeep
 |-- packages
 |   |-- ai
 |   |   |-- CLAUDE.md
@@ -70,9 +95,12 @@ Git HEAD: 3518d27
 |   |   |-- pyproject.toml
 |   |   |-- src
 |   |   |   `-- dt_api
-|   |   |       `-- __init__.py
+|   |   |       |-- app.py
+|   |   |       |-- __init__.py
+|   |   |       `-- routes.py
 |   |   `-- tests
-|   |       `-- __init__.py
+|   |       |-- __init__.py
+|   |       `-- test_routes.py
 |   |-- contracts
 |   |   |-- CLAUDE.md
 |   |   |-- pyproject.toml
@@ -92,26 +120,26 @@ Git HEAD: 3518d27
 |       |-- pyproject.toml
 |       |-- src
 |       |   `-- dt_physics
-|       |       `-- __init__.py
+|       |       |-- analysis.py
+|       |       |-- atmosphere.py
+|       |       |-- engine.py
+|       |       |-- forces.py
+|       |       |-- __init__.py
+|       |       |-- phases.py
+|       |       `-- presets.py
 |       `-- tests
-|           `-- __init__.py
+|           `-- test_engine.py
+|-- presentation
+|   |-- dokumentacja.pdf
+|   |-- Rocket_Digital_Twin__SpatiumCavum_team.pdf
+|   `-- Rocket_Digital_Twin__SpatiumCavum_team.pptx
 |-- pyproject.toml
 |-- README.md
-|-- runtime-configs
-|   `-- .gitkeep
-|-- scripts
-|   |-- bootstrap
-|   |   |-- ENVIRONMENT_SETUP.md
-|   |   `-- init_environment.sh
-|   |-- dev
-|   |   |-- dump_repo_structure.sh
-|   |   |-- .gitkeep
-|   |   `-- install_qpdf.sh
-|   |-- ops
-|   |   `-- .gitkeep
-|   `-- systemd
-|       `-- .gitkeep
-`-- uv.lock
+`-- scripts
+    `-- dev
+        |-- dump_repo_structure.sh
+        |-- .gitkeep
+        `-- install_qpdf.sh
 
 === GIT TRACKED FILES ===
 .claude/CLAUDE.md
@@ -124,13 +152,15 @@ Git HEAD: 3518d27
 CLAUDE.md
 CLAUDE_MD_STRATEGY.md
 README.md
-configs/.gitkeep
-docker/.gitkeep
+docs/DESIGN_DECISIONS.md
+docs/PHYSICS_MODEL.md
 docs/PRESENTATION_OUTLINE.md
+docs/SYSTEM_OVERVIEW.md
 docs/api/.gitkeep
 docs/architecture/.gitkeep
 docs/architecture/ARCHITECTURE_DECISIONS.md
 docs/architecture/COMMUNICATION.md
+docs/architecture/PHYSICS_THEORY_BASE.md
 docs/architecture/REPO_STRUCTURE.txt
 docs/challenge/GENERAL_TASK_SUMMARY.md
 docs/challenge/Satellite_Launch_System_ Digital Twin Mission.pdf
@@ -145,14 +175,38 @@ docs/goal/PROGRESS.md
 docs/rules/COMMIT_CONVENTIONS.md
 docs/tasks/BRIEF-api-01-vertical-slice.md
 docs/tasks/BRIEF-engine-01-vertical-slice.md
+docs/tasks/BRIEF-engine-02-thickening.md
+docs/tasks/BRIEF-engine-03-gravity-turn.md
 docs/tasks/BRIEF-frontend-01-vertical-slice.md
+docs/tasks/BRIEF-frontend-02.md
+docs/tasks/BRIEF-frontend-visual-enrichment.md
+docs/tasks/GOLDEN_PRESET.md
 frontend/.gitkeep
 frontend/CLAUDE.md
+frontend/index.html
+frontend/package-lock.json
 frontend/package.json
-grafana/.gitkeep
+frontend/src/App.tsx
+frontend/src/api/client.ts
+frontend/src/components/MissionTimeline.tsx
+frontend/src/components/OrbitalPlot.tsx
+frontend/src/components/RocketForm.tsx
+frontend/src/components/StageCard.tsx
+frontend/src/components/TelemetryFieldChart.tsx
+frontend/src/components/TelemetryHUD.tsx
+frontend/src/components/TrajectoryChart.tsx
+frontend/src/components/VerdictCard.tsx
+frontend/src/data/preset.ts
+frontend/src/data/syntheticResult.ts
+frontend/src/index.css
+frontend/src/main.tsx
+frontend/src/types/contracts.ts
+frontend/tsconfig.json
+frontend/tsconfig.node.json
+frontend/vite.config.ts
+golden_preset.json
 init_repo_structure.sh
 migrate_to_workspace.sh
-migrations/.gitkeep
 packages/ai/CLAUDE.md
 packages/ai/pyproject.toml
 packages/ai/src/dt_ai/__init__.py
@@ -160,10 +214,14 @@ packages/ai/tests/__init__.py
 packages/api/CLAUDE.md
 packages/api/pyproject.toml
 packages/api/src/dt_api/__init__.py
+packages/api/src/dt_api/app.py
+packages/api/src/dt_api/routes.py
 packages/api/tests/__init__.py
+packages/api/tests/test_routes.py
 packages/contracts/CLAUDE.md
 packages/contracts/pyproject.toml
 packages/contracts/src/dt_contracts/__init__.py
+packages/contracts/src/dt_contracts/_base.py
 packages/contracts/src/dt_contracts/api_messages.py
 packages/contracts/src/dt_contracts/constants.py
 packages/contracts/src/dt_contracts/rocket.py
@@ -173,20 +231,22 @@ packages/contracts/tests/test_contracts.py
 packages/physics-engine/CLAUDE.md
 packages/physics-engine/pyproject.toml
 packages/physics-engine/src/dt_physics/__init__.py
-packages/physics-engine/tests/__init__.py
+packages/physics-engine/src/dt_physics/analysis.py
+packages/physics-engine/src/dt_physics/atmosphere.py
+packages/physics-engine/src/dt_physics/engine.py
+packages/physics-engine/src/dt_physics/forces.py
+packages/physics-engine/src/dt_physics/phases.py
+packages/physics-engine/src/dt_physics/presets.py
+packages/physics-engine/tests/test_engine.py
+presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf
+presentation/Rocket_Digital_Twin__SpatiumCavum_team.pptx
+presentation/dokumentacja.pdf
 pyproject.toml
-runtime-configs/.gitkeep
-scripts/bootstrap/ENVIRONMENT_SETUP.md
-scripts/bootstrap/init_environment.sh
 scripts/dev/.gitkeep
 scripts/dev/dump_repo_structure.sh
 scripts/dev/install_qpdf.sh
-scripts/ops/.gitkeep
-scripts/systemd/.gitkeep
 
 === UNTRACKED (not ignored) ===
-packages/contracts/src/dt_contracts/_base.py
-uv.lock
 
 === WORKSPACE MANIFESTS ===
 PATHS:
@@ -196,7 +256,6 @@ packages/api/pyproject.toml
 packages/contracts/pyproject.toml
 packages/physics-engine/pyproject.toml
 pyproject.toml
-uv.lock
 
 --- BEGIN FILE: frontend/package.json ---
 {
@@ -204,10 +263,23 @@ uv.lock
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "React/TS frontend - parametry, sterowanie, wizualizacja 3D",
+  "description": "React/TS frontend - parametry, sterowanie, wizualizacja 2D",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "^5.4.5",
+    "vite": "^8.0.14"
   }
 }
 --- END FILE: frontend/package.json ---
@@ -233,7 +305,7 @@ name = "api"
 version = "0.1.0"
 description = "Backend HTTP (FastAPI) serwujacy dane do frontendu."
 requires-python = ">=3.12"
-dependencies = ["contracts", "physics-engine", "fastapi>=0.115", "uvicorn>=0.30"]
+dependencies = ["contracts", "physics-engine", "fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.27"]
 
 [build-system]
 requires = ["hatchling"]
@@ -299,13 +371,18 @@ dev = ["pytest>=8", "ruff>=0.6"]--- END FILE: pyproject.toml ---
 
 
 === STATS ===
-     23 md
-     13 py
-     12 gitkeep
-      6 sh
+     31 md
+     23 py
+     10 tsx
+      7 json
+      6 pdf
+      5 ts
       5 toml
-      4 pdf
-      3 json
+      5 sh
+      5 gitkeep
       1 txt
+      1 pptx
       1 pdf"
+      1 html
       1 gitignore
+      1 css
