@@ -136,6 +136,7 @@ export default function App() {
                 <OrbitalPlot
                   telemetry={result.telemetry}
                   events={result.events}
+                  verdict={result.verdict}
                 />
               )}
 

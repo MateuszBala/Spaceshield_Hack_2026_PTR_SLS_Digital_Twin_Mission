@@ -3,10 +3,12 @@
 // nie liczy żadnej fizyki. x, y płyną z silnika przez SimResult.telemetry.
 
 import React, { useMemo } from 'react';
-import type { TelemetryFrame, MissionEvent } from '../types/contracts';
+import type { TelemetryFrame, MissionEvent, OrbitVerdict } from '../types/contracts';
 
 // Źródło: dt_contracts.constants.R_EARTH — NIE wpisuj własnej wartości.
 const R_EARTH = 6_378_136.49; // m
+// Źródło: dt_contracts.constants.MU — standardowy parametr grawitacyjny Ziemi
+const MU = 3.986_004_418e14; // m³/s²
 
 const SVG_W = 560;
 const SVG_H = 560;
@@ -21,7 +23,30 @@ interface Transform {
   earthR: number; // promień Ziemi w pikselach SVG
 }
 
-function buildTransform(telemetry: TelemetryFrame[]): Transform {
+// Pełna elipsa orbitalna z elementów keplerowskich, orientacja z ostatniego frame'a.
+// Zwraca tablicę [x,y] w metrach (układ inercjalny, środek Ziemi = (0,0)).
+function computeOrbitEllipse(frame: TelemetryFrame, a: number, e: number): [number, number][] {
+  const { x, y, vx, vy } = frame;
+  const rMag = Math.sqrt(x * x + y * y);
+  const h = x * vy - y * vx; // moment pędu na jednostkę masy (2D, skalar)
+
+  // Wektor mimośrodu (kierunek ku perygeum)
+  const ex = (vy * h) / MU - x / rMag;
+  const ey = (-vx * h) / MU - y / rMag;
+  const omega = Math.atan2(ey, ex); // argument perygeum
+
+  const p = a * (1 - e * e); // semi-latus rectum
+  const N = 200;
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= N; i++) {
+    const theta = (2 * Math.PI * i) / N;
+    const r = p / (1 + e * Math.cos(theta));
+    pts.push([r * Math.cos(theta + omega), r * Math.sin(theta + omega)]);
+  }
+  return pts;
+}
+
+function buildTransform(telemetry: TelemetryFrame[], extraPts: [number, number][] = []): Transform {
   // reduce zamiast spread, bo spread może rzucić stack-overflow przy 1500+ punktach
   let minX =  Infinity, maxX = -Infinity;
   let minY =  Infinity, maxY = -Infinity;
@@ -30,6 +55,12 @@ function buildTransform(telemetry: TelemetryFrame[]): Transform {
     if (f.x > maxX) maxX = f.x;
     if (f.y < minY) minY = f.y;
     if (f.y > maxY) maxY = f.y;
+  }
+  for (const [px, py] of extraPts) {
+    if (px < minX) minX = px;
+    if (px > maxX) maxX = px;
+    if (py < minY) minY = py;
+    if (py > maxY) maxY = py;
   }
   // Uwzględnij kulo Ziemi
   minX = Math.min(minX, -R_EARTH);
@@ -81,12 +112,20 @@ function closestFrame(telemetry: TelemetryFrame[], t: number): TelemetryFrame {
 interface Props {
   telemetry: TelemetryFrame[];
   events: MissionEvent[];
+  verdict?: OrbitVerdict;
 }
 
-export default function OrbitalPlot({ telemetry, events }: Props) {
+export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
+  const orbitEllipsePts = useMemo<[number, number][] | null>(() => {
+    const el = verdict?.elements;
+    if (!el || !verdict.reached_orbit || telemetry.length < 1) return null;
+    const lastFrame = telemetry[telemetry.length - 1];
+    return computeOrbitEllipse(lastFrame, el.semi_major_axis, el.eccentricity);
+  }, [verdict, telemetry]);
+
   const transform = useMemo(
-    () => (telemetry.length > 1 ? buildTransform(telemetry) : null),
-    [telemetry],
+    () => (telemetry.length > 1 ? buildTransform(telemetry, orbitEllipsePts ?? []) : null),
+    [telemetry, orbitEllipsePts],
   );
 
   if (!transform) return null;
@@ -127,6 +166,11 @@ export default function OrbitalPlot({ telemetry, events }: Props) {
   const hasOrbit  = orbitPts.length  > 0;
   const hasFailed = failedPts.length > 0;
 
+  // Pełna elipsa orbitalna — jako string SVG points
+  const ellipseSvgPts = orbitEllipsePts
+    ? orbitEllipsePts.map(([px, py]) => toSvg(px, py).join(',')).join(' ')
+    : null;
+
   return (
     <div className="chart-wrapper">
       <div className="chart-header">
@@ -164,6 +208,19 @@ export default function OrbitalPlot({ telemetry, events }: Props) {
         >
           Ziemia
         </text>
+
+        {/* Pełna elipsa orbitalna (analityczna z elementów keplerowskich) */}
+        {ellipseSvgPts && (
+          <polyline
+            points={ellipseSvgPts}
+            fill="none"
+            stroke="#ffd740"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+            strokeDasharray="6 4"
+            opacity="0.65"
+          />
+        )}
 
         {/* Trajektoria wznoszenia / wstawienia */}
         {ascentPts && (
@@ -214,8 +271,8 @@ export default function OrbitalPlot({ telemetry, events }: Props) {
         ))}
 
         {/* Legenda */}
-        <g transform={`translate(10, ${SVG_H - 62})`}>
-          <rect x="-4" y="-8" width="170" height="68" fill="#070c17aa" rx="4" />
+        <g transform={`translate(10, ${SVG_H - 82})`}>
+          <rect x="-4" y="-8" width="182" height={ellipseSvgPts ? 90 : 74} fill="#070c17aa" rx="4" />
           <circle cx="8" cy="6" r="4.5" fill="#ff6b35" />
           <text x="17" y="10" fill="#6a8099" fontSize="9">Start</text>
           <line x1="0" y1="22" x2="18" y2="22" stroke="#00d4ff" strokeWidth="1.6" />
@@ -230,6 +287,12 @@ export default function OrbitalPlot({ telemetry, events }: Props) {
             <>
               <line x1="0" y1="38" x2="18" y2="38" stroke="#ff1744" strokeWidth="1.6" strokeDasharray="4 3" />
               <text x="22" y="42" fill="#6a8099" fontSize="9">Nieudana (FAILED)</text>
+            </>
+          )}
+          {ellipseSvgPts && (
+            <>
+              <line x1="0" y1="54" x2="18" y2="54" stroke="#ffd740" strokeWidth="1.2" strokeDasharray="5 3" opacity="0.65" />
+              <text x="22" y="58" fill="#6a8099" fontSize="9">Elipsa orbitalna (kepler.)</text>
             </>
           )}
         </g>
