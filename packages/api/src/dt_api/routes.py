@@ -126,7 +126,7 @@ async def simulate(request: SimRequest) -> SimResult:
         return _STUB_SIM_RESULT
 
     try:
-        result: SimResult = _physics_simulate(request.rocket)
+        result: SimResult = _physics_simulate(request)
     except Exception as exc:
         log.exception("Błąd silnika fizycznego")
         raise HTTPException(status_code=500, detail=f"Błąd silnika: {exc}") from exc
