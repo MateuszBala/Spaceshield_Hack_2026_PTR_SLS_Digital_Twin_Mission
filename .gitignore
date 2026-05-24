@@ -11,3 +11,5 @@ docs/challenge/astrodynamics-lectures/
 docs/challenge/studentbooks/
 .tmp/
 uv.lock
+node_modules/
+.claude/settings.local.json
