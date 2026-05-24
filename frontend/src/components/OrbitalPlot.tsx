@@ -10,9 +10,10 @@ const R_EARTH = 6_378_136.49; // m
 // Źródło: dt_contracts.constants.MU — standardowy parametr grawitacyjny Ziemi
 const MU = 3.986_004_418e14; // m³/s²
 
-const SVG_W = 560;
-const SVG_H = 560;
-const PAD   = 0.12; // 12 % marginesu względem zakresu danych
+const SVG_W   = 560;
+const SVG_H   = 560;
+const PAD     = 0.12; // 12 % marginesu względem zakresu danych
+const ALT_CAP = 400_000; // m — twardy limit osi Y widoku bocznego (400 km)
 
 // ---------------------------------------------------------------------------
 // Mapowanie układu inercjalnego (dane) → piksele SVG.
@@ -130,7 +131,9 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
 
   // Dane dla widoku flat-Earth: dystans od startu (tangencjalny) vs. wysokość.
   const flatPts = useMemo(() => {
-    const frames = telemetry.filter(f => f.phase === 'ascent' || f.phase === 'insertion');
+    const frames = telemetry.filter(f =>
+      (f.phase === 'ascent' || f.phase === 'insertion') && f.altitude <= ALT_CAP,
+    );
     if (frames.length < 2) return null;
     const f0 = frames[0];
     const r0 = Math.sqrt(f0.x * f0.x + f0.y * f0.y);
@@ -200,47 +203,41 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
   let flatMarkers: Array<{ sx: number; sy: number; r: number; color: string; label: string; kind: MissionEvent['kind'] }> = [];
   let flatGridLines: Array<{ y: number; label: string }> = [];
 
-  const ALT_CAP = 400_000; // 400 km — twardy limit osi Y widoku bocznego
+  if (flatPts && flatPts.length >= 2) {
+    let minD = Infinity, maxD = -Infinity;
+    for (const p of flatPts) {
+      if (p.downrange < minD) minD = p.downrange;
+      if (p.downrange > maxD) maxD = p.downrange;
+    }
+    const xScale = (FGW - FL - FR) / Math.max(maxD - minD, 1);
+    const xOff   = FL - minD * xScale;
+    const yScale = (FGH - FB - FT) / ALT_CAP;
+    flatGroundY  = FGH - FB;
 
-  if (flatPts) {
-    const visPts = flatPts.filter(p => p.altitude <= ALT_CAP);
-    if (visPts.length >= 2) {
-      let minD = Infinity, maxD = -Infinity;
-      for (const p of visPts) {
-        if (p.downrange < minD) minD = p.downrange;
-        if (p.downrange > maxD) maxD = p.downrange;
-      }
-      const xScale = (FGW - FL - FR) / Math.max(maxD - minD, 1);
-      const xOff   = FL - minD * xScale;
-      const yScale = (FGH - FB - FT) / ALT_CAP;
-      flatGroundY  = FGH - FB;
+    flatToSvg = (d: number, alt: number): [number, number] => [
+      d * xScale + xOff,
+      flatGroundY - alt * yScale,
+    ];
 
-      flatToSvg = (d: number, alt: number): [number, number] => [
-        d * xScale + xOff,
-        flatGroundY - alt * yScale,
-      ];
+    flatTrajPts = flatPts.map(p => flatToSvg!(p.downrange, p.altitude).join(',')).join(' ');
+    [flatLx, flatLy] = flatToSvg(flatPts[0].downrange, flatPts[0].altitude);
 
-      flatTrajPts = visPts.map(p => flatToSvg!(p.downrange, p.altitude).join(',')).join(' ');
-      [flatLx, flatLy] = flatToSvg(visPts[0].downrange, visPts[0].altitude);
+    flatMarkers = events
+      .filter(ev => ev.kind in EVENT_META)
+      .map(ev => {
+        const meta = EVENT_META[ev.kind]!;
+        const frame = closestFrame(telemetry, ev.t);
+        if (frame.phase !== 'ascent' && frame.phase !== 'insertion') return null;
+        const fp = flatPts.reduce((best, p) =>
+          Math.abs(p.t - ev.t) < Math.abs(best.t - ev.t) ? p : best, flatPts[0]);
+        const [sx, sy] = flatToSvg!(fp.downrange, fp.altitude);
+        return { ...meta, sx, sy, kind: ev.kind };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
 
-      flatMarkers = events
-        .filter(ev => ev.kind in EVENT_META)
-        .map(ev => {
-          const meta = EVENT_META[ev.kind]!;
-          const frame = closestFrame(telemetry, ev.t);
-          if (frame.phase !== 'ascent' && frame.phase !== 'insertion') return null;
-          const fp = visPts.reduce((best, p) =>
-            Math.abs(p.t - ev.t) < Math.abs(best.t - ev.t) ? p : best, visPts[0]);
-          if (fp.altitude > ALT_CAP) return null;
-          const [sx, sy] = flatToSvg!(fp.downrange, fp.altitude);
-          return { ...meta, sx, sy, kind: ev.kind };
-        })
-        .filter((m): m is NonNullable<typeof m> => m !== null);
-
-      for (let alt = 100_000; alt <= ALT_CAP; alt += 100_000) {
-        const [, gy] = flatToSvg(0, alt);
-        flatGridLines.push({ y: gy, label: `${alt / 1000} km` });
-      }
+    for (let alt = 100_000; alt <= ALT_CAP; alt += 100_000) {
+      const [, gy] = flatToSvg(0, alt);
+      flatGridLines.push({ y: gy, label: `${alt / 1000} km` });
     }
   }
 
@@ -377,8 +374,8 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     {flatPts && flatToSvg && (
       <div className="chart-wrapper">
         <div className="chart-header">
-          <h3 className="chart-title">Wznoszenie — przekrój boczny</h3>
-          <span className="chart-unit-badge">dystans od startu vs. wysokość</span>
+          <h3 className="chart-title">Przekrój boczny — opuszczanie atmosfery Ziemi</h3>
+          <span className="chart-unit-badge">dystans od startu vs. wysokość · maks. 400 km</span>
         </div>
         <svg
           viewBox={`0 0 ${FGW} ${FGH}`}
