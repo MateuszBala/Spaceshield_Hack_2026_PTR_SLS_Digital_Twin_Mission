@@ -1,0 +1,40 @@
+{
+  "rocket": {
+    "stages": [
+      {
+        "name": "S1-core",
+        "dry_mass": 3000.0,
+        "thrust": 780000.0,
+        "isp": 282.0,
+        "burn_time": 105.0,
+        "drag_coefficient": 0.30,
+        "reference_area": 3.0
+      },
+      {
+        "name": "S2",
+        "dry_mass": 700.0,
+        "thrust": 145000.0,
+        "isp": 345.0,
+        "burn_time": 120.0,
+        "drag_coefficient": 0.25,
+        "reference_area": 1.2
+      },
+      {
+        "name": "S3-upper",
+        "dry_mass": 120.0,
+        "thrust": 22000.0,
+        "isp": 448.0,
+        "burn_time": 115.0,
+        "drag_coefficient": 0.22,
+        "reference_area": 0.8
+      }
+    ],
+    "payload": {
+      "mass": 150.0,
+      "name": "sat-150"
+    },
+    "launch_angle_deg": 90.0
+  },
+  "include_telemetry": true,
+  "max_flight_time": 3600.0
+}

@@ -1,80 +1,116 @@
-# Zarys prezentacji i wideo
+# Zarys prezentacji i wideo (zaktualizowany pod realny stan demo)
 
-Cel: pokazać jurorom WARTOŚĆ w ~3 minuty. Przy tak krótkim czasie nie ma miejsca
-na architekturę ani szczegóły techniczne — cały czas idzie na ZŁOTY SCENARIUSZ
+Cel: pokazać jurorom WARTOŚĆ w ~3 minuty. Cały czas idzie na ZŁOTY SCENARIUSZ
 DEMO (pętla Digital Twina). Jurorzy oceniają obraz, nie kod.
 
 Format: slajdy + osobne wideo. Język: polski. Czas: ~3 min (twardy limit).
 
+## Stan systemu (do czego się odnosimy)
+Demo DZIAŁA end-to-end na prawdziwej fizyce: UI → API → silnik → werdykt → UI.
+Złoty preset (3 stopnie) osiąga orbitę: perygeum ~1244 km, apogeum ~1302 km,
+e=0,0038 (niemal kołowa). Widoczne: werdykt, sekwencja misji SpaceX-style,
+HUD telemetrii, g-force, trajektoria 2D, (jeśli gotowy) wykres orbity x–y.
+
 ## Zasada nadrzędna
-Prezentacja jest też SPECYFIKACJĄ celu MUST: jeśli coś jest na slajdzie/w demo,
-to MUSI działać. Jeśli czegoś nie ma w tych 3 minutach — to nie jest MUST.
+Jeśli coś jest na slajdzie/w demo — MUSI działać. Nagrywamy DOPIERO gdy
+przeklikanie jest sprawdzone na konkretnych wartościach.
 
 ---
 
 ## Część A — Slajdy (minimalne, ~5 slajdów, tło dla wideo)
 
-Slajdy mają być TŁEM, nie wykładem. Mało tekstu, duże hasła, jeden obraz na slajd.
+Mało tekstu, duże hasła, jeden obraz na slajd. Slajdy są TŁEM, nie wykładem.
 
-1. **Tytuł + jedno zdanie** — „Cyfrowy bliźniak rakiety wynoszącej satelitę na
-   LEO. Zmień parametr, przelicz, zobacz wpływ na misję.” Logo/wizualizacja w tle.
+1. **Tytuł + jedno zdanie** — „Rocket Digital Twin: cyfrowy bliźniak rakiety
+   wynoszącej satelitę na LEO. Zmień parametr, przelicz, zobacz wpływ na misję."
+   W tle zrzut interfejsu z werdyktem „ORBITA OSIĄGNIĘTA".
 
 2. **Problem / po co** — projektowanie rakiety to gra kompromisów (masa vs orbita).
-   Hasło: „Co się stanie, jeśli zmienię ten stopień?” — i że na to odpowiadamy
-   natychmiast, symulacją.
+   Hasło: „Co się stanie, jeśli zmienię ten stopień?" — odpowiadamy natychmiast,
+   pełną symulacją misji, nie zgadywaniem.
 
-3. **Złoty scenariusz (zapowiedź demo)** — jedna grafika pętli:
-   parametry → symulacja → werdykt + trajektoria. „Zaraz pokażemy to na żywo.”
+3. **Złoty scenariusz (zapowiedź demo)** — grafika pętli:
+   parametry → symulacja → werdykt + trajektoria. „Zaraz pokażemy na żywo."
 
-4. **Co pod spodem (1 slajd, lekko)** — fizyka oparta na realnych danych (SMAD),
-   silnik liczący pełną misję, optymalizacja masy. Bez detali — tylko że to
-   solidne, nie zabawka. (Jeśli AI gotowe: wspomnieć optymalizację.)
+4. **Co pod spodem (lekko, ale konkretnie)** — to nie zabawka:
+   - pełna fizyka 3 faz lotu (wznoszenie z oporem → wstawienie → orbita),
+   - werdykt z elementów keplerowskich (energia, mimośród, perygeum), NIE z wysokości,
+   - gravity turn + manewr Hohmanna (coast do apogeum + circularyzacja),
+   - oparte na realnych źródłach: MIT 16.346 Astrodynamics, SMAD.
+   Jedno zdanie o architekturze: silnik / API / interfejs rozdzielone, budowane
+   równolegle. Bez detali — tylko sygnał „solidne inżyniersko".
 
-5. **Zamknięcie** — co osiągnęliśmy + co dalej (gdyby był czas: 3D, więcej
-   scenariuszy). Podziękowanie.
+5. **Zamknięcie** — co osiągnęliśmy (działający cyfrowy bliźniak na prawdziwej
+   fizyce) + co dalej (3D, optymalizacja AI, więcej scenariuszy). Podziękowanie.
 
 ---
 
 ## Część B — Scenariusz wideo (~3 min, to jest SEDNO)
 
-Wideo to głównie samo demo z narracją. Kolejność przeklikania, pod którą budujemy
-frontend. KAŻDY krok musi działać na presecie „złotego przykładu”.
+Wideo to głównie samo demo z narracją. KAŻDY krok sprawdzony na konkretnych
+wartościach PRZED nagraniem.
 
 ### Akt 1 — Punkt wyjścia (~40 s)
-- Pokaż interfejs z załadowanym PRESETEM rakiety, który osiąga orbitę.
-- Uruchom symulację. Pokaż trajektorię 2D wznoszącą się na orbitę + werdykt
-  „ORBITA OSIĄGNIĘTA” (z elementami: perygeum, mimośród).
-- Narracja: „Oto rakieta trójstopniowa. Symulujemy jej misję — osiąga LEO.”
+- Interfejs z załadowanym złotym presetem (3 stopnie: S1-core, S2, S3-upper).
+  Badge „API LIVE · SILNIK ✓" — pokazuje, że to prawdziwa fizyka, nie atrapa.
+- Kliknij „Przelicz". Pokaż werdykt „ORBITA OSIĄGNIĘTA" + elementy:
+  perygeum ~1244 km, mimośród 0,0038, okres ~111 min.
+- Pokaż sekwencję misji (LIFTOFF → MAX-Q → MECO → SEP → SECO → APOGEE →
+  ORBITAL INSERTION) i trajektorię.
+- Narracja: „Rakieta trójstopniowa. Symulujemy całą misję — od startu, przez
+  separacje stopni, manewr na orbitę. Satelita osiąga stabilną orbitę."
 
 ### Akt 2 — Pętla Digital Twina (~90 s, NAJWAŻNIEJSZE)
-- Zmień JEDEN parametr na gorszy — np. zmniejsz masę paliwa stopnia 1 albo ciąg.
-- Przelicz. Pokaż, że teraz trajektoria opada / orbita NIE osiągnięta
-  („PERYGEUM PONIŻEJ PROGU” albo „BRAK ORBITY”).
-- Narracja: „Zmieniam jeden parametr — i misja się nie udaje. To jest cyfrowy
-  bliźniak: natychmiast widzę skutek decyzji projektowej.”
-- (Jeśli telemetria gotowa) pokaż dashboard: profil prędkości/wysokości/masy.
+- Zmień JEDEN parametr na gorszy — wartość USTALONA EMPIRYCZNIE przed nagraniem
+  (patrz „Do sprawdzenia przed nagraniem" niżej). Kandydat: skrócenie czasu
+  pracy lub ciągu górnego stopnia / S1.
+- Przelicz. Pokaż werdykt „BRAK ORBITY" + powód (np. perygeum poniżej progu /
+  orbita niezwiązana). Trajektoria pokazuje, że misja się nie domyka.
+- Narracja: „Zmieniam jeden parametr — i misja się nie udaje. To jest sedno
+  cyfrowego bliźniaka: natychmiast widzę skutek decyzji projektowej, zanim
+  zbuduję cokolwiek z metalu."
+- Pokaż dashboard telemetrii (prędkość/wysokość/g-force) jako dowód głębi symulacji.
 
 ### Akt 3 — Rozwiązanie (~40 s)
-- Wariant A (jeśli AI gotowe): kliknij „optymalizuj” — pokaż, że AI znajduje
-  konfigurację osiągającą orbitę przy minimalnej masie startowej.
-- Wariant B (jeśli AI niegotowe): ręcznie skoryguj parametr z powrotem / pokaż
-  inny preset, który się udaje. Narracja: „Wracam do konfiguracji, która działa.”
-- Pointa: „Tyle eksperymentów, ile chcemy — bez budowania prawdziwej rakiety.”
+- AI jest COULD i niezrobione → idziemy WARIANTEM B (ręczna korekta):
+  przywróć parametr / pokaż, że poprawna konfiguracja znów osiąga orbitę.
+- Narracja: „Wracam do konfiguracji, która działa — albo szukam lepszej.
+  Tyle eksperymentów, ile chcemy, bez budowania prawdziwej rakiety."
+- (Jeśli zostanie czas i wykres orbity gotowy) pokaż tor x–y wokół Ziemi jako
+  efektowne domknięcie — „tak wygląda osiągnięta orbita".
 
 ### Akt 4 — Domknięcie (~10 s)
-- (Jeśli gotowe) mignięcie 3D albo wykresów walidacyjnych jako dowód solidności.
 - Hasło końcowe + ekran tytułowy.
 
 ---
 
+## DO SPRAWDZENIA PRZED NAGRANIEM (krytyczne — nie zgadywać na żywo)
+
+1. **Parametr psujący misję (Akt 2).** Stary „suwak demo" z fallbacku Δv jest
+   NIEAKTUALNY (gravity turn zmienił fizykę). Przed nagraniem: w UI zmień
+   kandydujący parametr (czas pracy/ciąg S3 lub S1), kliknij Przelicz, i ZNAJDŹ
+   wartość, która NIEZAWODNIE daje „BRAK ORBITY". Zapisz tę wartość — to jest
+   scenariusz Aktu 2. Sprawdź też, że powrót do oryginału znów daje orbitę (Akt 3).
+2. **Czas obliczenia.** Lot ma ~22 min coastu (symulowane). Sprawdź, ile trwa
+   realnie kliknięcie „Przelicz" — jeśli jest zauważalna pauza, w narracji ją
+   „zagadaj" (mów w trakcie liczenia) albo przytnij w montażu.
+3. **Stabilność.** Przeklikaj cały scenariusz 2-3 razy przed nagraniem — Akt 1
+   (orbita) → Akt 2 (brak orbity) → Akt 3 (znów orbita). Ma działać za każdym razem.
+
+---
+
 ## Zabezpieczenia (przy 3 min nie ma drugiego podejścia)
-- Nagrywaj DOPIERO gdy demo działa stabilnie na presecie — nie improwizuj na żywo.
-- Miej preset, który NA PEWNO przechodzi (Akt 1) i parametr, który NA PEWNO psuje
-  misję (Akt 2) — sprawdzone wcześniej, nie zgadywane przy nagraniu.
-- Jeśli AI niegotowe — Akt 3 wariant B działa bez AI. Wideo nie zależy od COULD.
-- Backup: gdyby demo na żywo padło, miej nagrane wcześniej ujęcia kluczowych kroków.
+- Nagrywaj DOPIERO gdy demo działa stabilnie — nie improwizuj na żywo.
+- Miej sprawdzony preset (Akt 1) i sprawdzoną wartość psującą (Akt 2).
+- AI niegotowe → Akt 3 wariant B (ręczna korekta). Wideo nie zależy od COULD.
+- Backup: nagraj kluczowe ujęcia osobno, gdyby demo na żywo padło — można zmontować.
+- Uruchomienie przed nagraniem: API (`uvicorn dt_api.app:app --port 8000`) +
+  front (`npm run dev`). Sprawdź badge „API LIVE · SILNIK ✓" przed startem.
 
 ## Co świadomie POMIJAMY w 3 minutach
-- Architekturę pakietów, kontrakt, uv workspace, podział na worktree — to dla
-  jurorów szum. Wspomnieć jednym zdaniem na slajdzie 4, nie więcej.
-- Szczegóły numeryczne (solwery, fazy) — chyba że juror dopyta po prezentacji.
+- Architektura pakietów, kontrakt, uv workspace, worktree — szum dla jurorów.
+  Jedno zdanie na slajdzie 4, nie więcej.
+- Szczegóły numeryczne (solwery, fazy, zdarzenia) — tylko jeśli juror dopyta.
+- Fakt, że orbita jest na 1244 km (górny LEO) — nie akcentować; „stabilna orbita
+  okołoziemska" wystarcza. Jeśli juror techniczny dopyta: „to konkretny preset,
+  system liczy dowolną orbitę — mogę pokazać niższą zmieniając parametry".
