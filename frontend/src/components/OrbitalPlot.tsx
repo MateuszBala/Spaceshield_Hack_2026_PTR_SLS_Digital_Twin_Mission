@@ -10,9 +10,10 @@ const R_EARTH = 6_378_136.49; // m
 // Źródło: dt_contracts.constants.MU — standardowy parametr grawitacyjny Ziemi
 const MU = 3.986_004_418e14; // m³/s²
 
-const SVG_W = 560;
-const SVG_H = 560;
-const PAD   = 0.12; // 12 % marginesu względem zakresu danych
+const SVG_W   = 560;
+const SVG_H   = 560;
+const PAD     = 0.12; // 12 % marginesu względem zakresu danych
+const ALT_CAP = 400_000; // m — twardy limit osi Y widoku bocznego (400 km)
 
 // ---------------------------------------------------------------------------
 // Mapowanie układu inercjalnego (dane) → piksele SVG.
@@ -128,6 +129,25 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     [telemetry, orbitEllipsePts],
   );
 
+  // Dane dla widoku flat-Earth: dystans od startu (tangencjalny) vs. wysokość.
+  const flatPts = useMemo(() => {
+    const frames = telemetry.filter(f =>
+      (f.phase === 'ascent' || f.phase === 'insertion') && f.altitude <= ALT_CAP,
+    );
+    if (frames.length < 2) return null;
+    const f0 = frames[0];
+    const r0 = Math.sqrt(f0.x * f0.x + f0.y * f0.y);
+    if (r0 === 0) return null;
+    // wektor tangencjalny (prostopadle do radialnego w kierunku ruchu)
+    const tx = -f0.y / r0;
+    const ty =  f0.x / r0;
+    return frames.map(f => ({
+      downrange: (f.x - f0.x) * tx + (f.y - f0.y) * ty,
+      altitude:  f.altitude,
+      t:         f.t,
+    }));
+  }, [telemetry]);
+
   if (!transform) return null;
   const { toSvg, earthR } = transform;
 
@@ -171,7 +191,58 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     ? orbitEllipsePts.map(([px, py]) => toSvg(px, py).join(',')).join(' ')
     : null;
 
+  // ── Widok flat-Earth — faza wznoszenia ──────────────────────────────────────
+  const FGW = SVG_W;
+  const FGH = 400;
+  const FL = 52, FR = 12, FB = 52, FT = 16; // padding: left, right, bottom, top
+
+  let flatToSvg: ((d: number, alt: number) => [number, number]) | null = null;
+  let flatGroundY = FGH - FB;
+  let flatTrajPts = '';
+  let flatLx = FL, flatLy = flatGroundY;
+  let flatMarkers: Array<{ sx: number; sy: number; r: number; color: string; label: string; kind: MissionEvent['kind'] }> = [];
+  let flatGridLines: Array<{ y: number; label: string }> = [];
+
+  if (flatPts && flatPts.length >= 2) {
+    let minD = Infinity, maxD = -Infinity;
+    for (const p of flatPts) {
+      if (p.downrange < minD) minD = p.downrange;
+      if (p.downrange > maxD) maxD = p.downrange;
+    }
+    const xScale = (FGW - FL - FR) / Math.max(maxD - minD, 1);
+    const xOff   = FL - minD * xScale;
+    const yScale = (FGH - FB - FT) / ALT_CAP;
+    flatGroundY  = FGH - FB;
+
+    flatToSvg = (d: number, alt: number): [number, number] => [
+      d * xScale + xOff,
+      flatGroundY - alt * yScale,
+    ];
+
+    flatTrajPts = flatPts.map(p => flatToSvg!(p.downrange, p.altitude).join(',')).join(' ');
+    [flatLx, flatLy] = flatToSvg(flatPts[0].downrange, flatPts[0].altitude);
+
+    flatMarkers = events
+      .filter(ev => ev.kind in EVENT_META)
+      .map(ev => {
+        const meta = EVENT_META[ev.kind]!;
+        const frame = closestFrame(telemetry, ev.t);
+        if (frame.phase !== 'ascent' && frame.phase !== 'insertion') return null;
+        const fp = flatPts.reduce((best, p) =>
+          Math.abs(p.t - ev.t) < Math.abs(best.t - ev.t) ? p : best, flatPts[0]);
+        const [sx, sy] = flatToSvg!(fp.downrange, fp.altitude);
+        return { ...meta, sx, sy, kind: ev.kind };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+
+    for (let alt = 100_000; alt <= ALT_CAP; alt += 100_000) {
+      const [, gy] = flatToSvg(0, alt);
+      flatGridLines.push({ y: gy, label: `${alt / 1000} km` });
+    }
+  }
+
   return (
+    <>
     <div className="chart-wrapper">
       <div className="chart-header">
         <h3 className="chart-title">Tor lotu — układ inercjalny (x, y)</h3>
@@ -298,5 +369,62 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
         </g>
       </svg>
     </div>
+
+    {/* ── Widok flat-Earth: wysokość vs. dystans od startu ── */}
+    {flatPts && flatToSvg && (
+      <div className="chart-wrapper">
+        <div className="chart-header">
+          <h3 className="chart-title">Przekrój boczny — opuszczanie atmosfery Ziemi</h3>
+          <span className="chart-unit-badge">dystans od startu vs. wysokość · maks. 400 km</span>
+        </div>
+        <svg
+          viewBox={`0 0 ${FGW} ${FGH}`}
+          style={{ width: '100%', maxHeight: FGH, display: 'block' }}
+          aria-label="Faza wznoszenia — widok boczny"
+        >
+          {/* Tło */}
+          <rect width={FGW} height={FGH} fill="#070c17" rx="6" />
+
+          {/* Wypełnienie Ziemi */}
+          <rect x="0" y={flatGroundY} width={FGW} height={FGH - flatGroundY} fill="#0a2040" />
+
+          {/* Siatka wysokości */}
+          {flatGridLines.map(({ y, label }) => (
+            <g key={label}>
+              <line x1={FL} y1={y} x2={FGW - FR} y2={y} stroke="#0d1a2a" strokeWidth="1" />
+              <text x={FL - 6} y={y + 4} fill="#2a4060" fontSize="9" textAnchor="end">{label}</text>
+            </g>
+          ))}
+
+          {/* Linia powierzchni Ziemi */}
+          <line x1="0" y1={flatGroundY} x2={FGW} y2={flatGroundY} stroke="#1a4a80" strokeWidth="2.5" />
+          <text x={FGW / 2} y={flatGroundY + 18} fill="#2a6aaa" fontSize="10" fontWeight="700" textAnchor="middle">ZIEMIA</text>
+
+          {/* Trajektoria wznoszenia */}
+          {flatTrajPts && (
+            <polyline
+              points={flatTrajPts}
+              fill="none"
+              stroke="#00d4ff"
+              strokeWidth="2.4"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Start */}
+          <circle cx={flatLx} cy={flatLy} r={5.5} fill="#ff6b35" />
+          <text x={flatLx + 10} y={flatLy - 6} fill="#ff6b35" fontSize="11" fontWeight="700">LIFTOFF</text>
+
+          {/* Markery zdarzeń */}
+          {flatMarkers.map(({ sx, sy, r, color, label, kind }, i) => (
+            <g key={`fe-${kind}-${i}`}>
+              <circle cx={sx} cy={sy} r={r + 1.5} fill={color} />
+              <text x={sx + r + 8} y={sy + 4} fill={color} fontSize="10" fontWeight="700">{label}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    )}
+    </>
   );
 }
