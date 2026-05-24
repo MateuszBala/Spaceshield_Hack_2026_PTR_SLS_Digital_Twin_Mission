@@ -85,8 +85,7 @@ Jeden skrypt walidacyjny zrzuca PNG (dla człowieka / wideo) + JSON (dla analizy
 - Preset rakiety: parametryczny, ale z gotowym presetem startowym osiągającym orbitę.
 
 ### Następny krok
-- Spisać briefy zadaniowe dla instancji (silnik / API / frontend) pod pionowy
-  plaster. To pierwszy realny task-level dokument.
+- API: zaimportować `dt_physics.simulate` i wystawić endpoint POST /simulate.
 
 ---
 
@@ -99,5 +98,9 @@ Format: `RRRR-MM-DD [Mn] — nazwa`. Jedna–dwie linie opisu.
   Zatwierdzona architektura (monorepo/uv), gotowy kontrakt dt_contracts
   (schematy + stałe SMAD + testy logiki), komplet instrukcji dla instancji
   (CLAUDE.md, copilot, commity). Wejście do pracy równoległej zabezpieczone.
+- 2026-05-24 [M2] — Pionowy plaster: silnik (krok 1) gotowy.
+  `dt_physics.simulate(RocketParams) -> SimResult` wywoływalne, zwraca poprawny
+  kontrakt (stub). `golden_preset()` zaimplementowany i zwalidowany (13 testów).
+  API może importować i wołać silnik — pionowy plaster odblokowany.
 
   
