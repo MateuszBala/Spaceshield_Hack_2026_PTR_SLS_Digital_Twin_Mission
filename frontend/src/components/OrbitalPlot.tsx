@@ -90,35 +90,6 @@ function buildTransform(telemetry: TelemetryFrame[], extraPts: [number, number][
   return { toSvg, earthR };
 }
 
-// Zbliżenie na fazę wznoszenia — obszar wyznaczony tylko z klatek ascent+insertion.
-// Kula Ziemi rysowana z pełnym promieniem, viewBox naturalnie ją przycina → widać arc.
-function buildAscentTransform(telemetry: TelemetryFrame[]): Transform | null {
-  const frames = telemetry.filter(f => f.phase === 'ascent' || f.phase === 'insertion');
-  if (frames.length < 2) return null;
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const f of frames) {
-    if (f.x < minX) minX = f.x;
-    if (f.x > maxX) maxX = f.x;
-    if (f.y < minY) minY = f.y;
-    if (f.y > maxY) maxY = f.y;
-  }
-
-  const span = Math.max(maxX - minX, maxY - minY) * 1.28;
-  const cX = (minX + maxX) / 2;
-  const cY = (minY + maxY) / 2;
-  const dataLeft   = cX - span / 2;
-  const dataBottom = cY - span / 2;
-
-  const toSvg = (dx: number, dy: number): [number, number] => {
-    const svgX = ((dx - dataLeft) / span) * SVG_W;
-    const svgY = SVG_H - ((dy - dataBottom) / span) * SVG_H;
-    return [svgX, svgY];
-  };
-
-  return { toSvg, earthR: (R_EARTH / span) * SVG_W };
-}
-
 // ---------------------------------------------------------------------------
 // Etykiety zdarzeń (tylko te, które mają sens na mapie 2D)
 // ---------------------------------------------------------------------------
@@ -157,10 +128,22 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     [telemetry, orbitEllipsePts],
   );
 
-  const ascentTransform = useMemo(
-    () => buildAscentTransform(telemetry),
-    [telemetry],
-  );
+  // Dane dla widoku flat-Earth: dystans od startu (tangencjalny) vs. wysokość.
+  const flatPts = useMemo(() => {
+    const frames = telemetry.filter(f => f.phase === 'ascent' || f.phase === 'insertion');
+    if (frames.length < 2) return null;
+    const f0 = frames[0];
+    const r0 = Math.sqrt(f0.x * f0.x + f0.y * f0.y);
+    if (r0 === 0) return null;
+    // wektor tangencjalny (prostopadle do radialnego w kierunku ruchu)
+    const tx = -f0.y / r0;
+    const ty =  f0.x / r0;
+    return frames.map(f => ({
+      downrange: (f.x - f0.x) * tx + (f.y - f0.y) * ty,
+      altitude:  f.altitude,
+      t:         f.t,
+    }));
+  }, [telemetry]);
 
   if (!transform) return null;
   const { toSvg, earthR } = transform;
@@ -205,37 +188,57 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     ? orbitEllipsePts.map(([px, py]) => toSvg(px, py).join(',')).join(' ')
     : null;
 
-  // ── Widok zbliżony — faza wznoszenia ──────────────────────────────────────
-  const at = ascentTransform;
-  const [azEcx, azEcy] = at ? at.toSvg(0, 0) : [0, 0];
-  const [azLx,  azLy]  = at ? at.toSvg(telemetry[0].x, telemetry[0].y) : [0, 0];
+  // ── Widok flat-Earth — faza wznoszenia ──────────────────────────────────────
+  const FGW = SVG_W;
+  const FGH = 400;
+  const FL = 52, FR = 12, FB = 52, FT = 16; // padding: left, right, bottom, top
 
-  const azAscentPts = at
-    ? telemetry
-        .filter(f => f.phase === 'ascent' || f.phase === 'insertion')
-        .map(f => at.toSvg(f.x, f.y).join(','))
-        .join(' ')
-    : '';
+  let flatToSvg: ((d: number, alt: number) => [number, number]) | null = null;
+  let flatGroundY = FGH - FB;
+  let flatTrajPts = '';
+  let flatLx = FL, flatLy = flatGroundY;
+  let flatMarkers: Array<{ sx: number; sy: number; r: number; color: string; label: string; kind: MissionEvent['kind'] }> = [];
+  let flatGridLines: Array<{ y: number; label: string }> = [];
 
-  const azFailedPts = at
-    ? telemetry
-        .filter(f => f.phase === 'failed')
-        .map(f => at.toSvg(f.x, f.y).join(','))
-        .join(' ')
-    : '';
+  if (flatPts) {
+    let minD = Infinity, maxD = -Infinity, maxAlt = -Infinity;
+    for (const p of flatPts) {
+      if (p.downrange < minD) minD = p.downrange;
+      if (p.downrange > maxD) maxD = p.downrange;
+      if (p.altitude > maxAlt) maxAlt = p.altitude;
+    }
+    const xScale = (FGW - FL - FR) / Math.max(maxD - minD, 1);
+    const xOff   = FL - minD * xScale;
+    const yScale = (FGH - FB - FT) / Math.max(maxAlt, 1);
+    flatGroundY  = FGH - FB;
 
-  const azMarkers = at
-    ? events
-        .filter(ev => ev.kind in EVENT_META)
-        .map(ev => {
-          const meta = EVENT_META[ev.kind]!;
-          const frame = closestFrame(telemetry, ev.t);
-          if (frame.phase !== 'ascent' && frame.phase !== 'insertion') return null;
-          const [sx, sy] = at.toSvg(frame.x, frame.y);
-          return { ...meta, sx, sy, kind: ev.kind };
-        })
-        .filter((m): m is NonNullable<typeof m> => m !== null)
-    : [];
+    flatToSvg = (d: number, alt: number): [number, number] => [
+      d * xScale + xOff,
+      flatGroundY - alt * yScale,
+    ];
+
+    flatTrajPts = flatPts.map(p => flatToSvg!(p.downrange, p.altitude).join(',')).join(' ');
+    [flatLx, flatLy] = flatToSvg(flatPts[0].downrange, flatPts[0].altitude);
+
+    flatMarkers = events
+      .filter(ev => ev.kind in EVENT_META)
+      .map(ev => {
+        const meta = EVENT_META[ev.kind]!;
+        const frame = closestFrame(telemetry, ev.t);
+        if (frame.phase !== 'ascent' && frame.phase !== 'insertion') return null;
+        const fp = flatPts.reduce((best, p) =>
+          Math.abs(p.t - ev.t) < Math.abs(best.t - ev.t) ? p : best, flatPts[0]);
+        const [sx, sy] = flatToSvg!(fp.downrange, fp.altitude);
+        return { ...meta, sx, sy, kind: ev.kind };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+
+    const step = maxAlt > 800_000 ? 200_000 : maxAlt > 300_000 ? 100_000 : 50_000;
+    for (let alt = step; alt < maxAlt * 1.05; alt += step) {
+      const [, gy] = flatToSvg(0, alt);
+      flatGridLines.push({ y: gy, label: `${Math.round(alt / 1000)} km` });
+    }
+  }
 
   return (
     <>
@@ -366,55 +369,56 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
       </svg>
     </div>
 
-    {/* ── Widok zbliżony: fragment Ziemi + tor wznoszenia ── */}
-    {at && (
+    {/* ── Widok flat-Earth: wysokość vs. dystans od startu ── */}
+    {flatPts && flatToSvg && (
       <div className="chart-wrapper">
         <div className="chart-header">
-          <h3 className="chart-title">Wznoszenie — zbliżenie</h3>
-          <span className="chart-unit-badge">ECI · fragment powierzchni Ziemi</span>
+          <h3 className="chart-title">Wznoszenie — przekrój boczny</h3>
+          <span className="chart-unit-badge">dystans od startu vs. wysokość</span>
         </div>
         <svg
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          style={{ width: '100%', maxHeight: SVG_H, display: 'block' }}
-          aria-label="Faza wznoszenia — widok zbliżony"
+          viewBox={`0 0 ${FGW} ${FGH}`}
+          style={{ width: '100%', maxHeight: FGH, display: 'block' }}
+          aria-label="Faza wznoszenia — widok boczny"
         >
-          <rect width={SVG_W} height={SVG_H} fill="#070c17" rx="6" />
-          <line x1={azEcx} y1={0} x2={azEcx} y2={SVG_H} stroke="#0d1a2a" strokeWidth="1" />
-          <line x1={0} y1={azEcy} x2={SVG_W} y2={azEcy} stroke="#0d1a2a" strokeWidth="1" />
+          {/* Tło */}
+          <rect width={FGW} height={FGH} fill="#070c17" rx="6" />
 
-          {/* Kula Ziemi — ogromny okrąg, widoczny tylko fragment arc (naturalny clip viewBox) */}
-          <circle cx={azEcx} cy={azEcy} r={at.earthR} fill="#0a2040" stroke="#1a4a80" strokeWidth="2.5" />
+          {/* Wypełnienie Ziemi */}
+          <rect x="0" y={flatGroundY} width={FGW} height={FGH - flatGroundY} fill="#0a2040" />
 
-          {/* Tor wznoszenia */}
-          {azAscentPts && (
+          {/* Siatka wysokości */}
+          {flatGridLines.map(({ y, label }) => (
+            <g key={label}>
+              <line x1={FL} y1={y} x2={FGW - FR} y2={y} stroke="#0d1a2a" strokeWidth="1" />
+              <text x={FL - 6} y={y + 4} fill="#2a4060" fontSize="9" textAnchor="end">{label}</text>
+            </g>
+          ))}
+
+          {/* Linia powierzchni Ziemi */}
+          <line x1="0" y1={flatGroundY} x2={FGW} y2={flatGroundY} stroke="#1a4a80" strokeWidth="2.5" />
+          <text x={FGW / 2} y={flatGroundY + 18} fill="#2a6aaa" fontSize="10" fontWeight="700" textAnchor="middle">ZIEMIA</text>
+
+          {/* Trajektoria wznoszenia */}
+          {flatTrajPts && (
             <polyline
-              points={azAscentPts}
+              points={flatTrajPts}
               fill="none"
               stroke="#00d4ff"
               strokeWidth="2.4"
               strokeLinejoin="round"
             />
           )}
-          {azFailedPts && (
-            <polyline
-              points={azFailedPts}
-              fill="none"
-              stroke="#ff1744"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeDasharray="5 3"
-            />
-          )}
 
           {/* Start */}
-          <circle cx={azLx} cy={azLy} r={5.5} fill="#ff6b35" />
-          <text x={azLx + 10} y={azLy - 5} fill="#ff6b35" fontSize="11" fontWeight="700">LIFTOFF</text>
+          <circle cx={flatLx} cy={flatLy} r={5.5} fill="#ff6b35" />
+          <text x={flatLx + 10} y={flatLy - 6} fill="#ff6b35" fontSize="11" fontWeight="700">LIFTOFF</text>
 
-          {/* Markery zdarzeń w fazie wznoszenia */}
-          {azMarkers.map(({ sx, sy, r, color, label, kind }, i) => (
-            <g key={`az-${kind}-${i}`}>
-              <circle cx={sx} cy={sy} r={r + 1} fill={color} />
-              <text x={sx + r + 7} y={sy + 4} fill={color} fontSize="10" fontWeight="700">{label}</text>
+          {/* Markery zdarzeń */}
+          {flatMarkers.map(({ sx, sy, r, color, label, kind }, i) => (
+            <g key={`fe-${kind}-${i}`}>
+              <circle cx={sx} cy={sy} r={r + 1.5} fill={color} />
+              <text x={sx + r + 8} y={sy + 4} fill={color} fontSize="10" fontWeight="700">{label}</text>
             </g>
           ))}
         </svg>
