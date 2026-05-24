@@ -2,11 +2,20 @@
 
 Stan kanoniczny: [x, y, vx, vy, m] w ukladzie inercjalnym (srodek Ziemi=0,0).
 
-Profil kata ciagu (pitch) w lokalnym ukladzie ciala:
-  pitch=pi/2 = radialnie (pionowo)
-  pitch=0    = tangentialnie, prograde (poziomo)
-Transformacja: F = T*(sin(pitch)*r_hat + cos(pitch)*t_hat)
+Profil kata ciagu — gravity turn (czasowy):
+  t < PITCH_KICK_START : pionowo (radialnie) — budowanie predkosci
+  PITCH_KICK_START..PITCH_END_TIME: liniowy zwrot pitch: 90deg → PITCH_FINAL_RAD
+  t >= PITCH_END_TIME   : ciag podaza za wektorem predkosci (prograde tracking)
+
+Uzasadnienie programu pitch S1 + coast do apoapsis + S3:
+  Po S2 burnout (h~210 km, v~97% v_circ, FPA~12.8 deg) bezposrednie odpalenie
+  S3 daje cutoff za nizko — perygeum pod ziemia. Zamiast tego:
+  rakieta coastuje balistycznie do apoapsis (~1260 km, v_r=0), dopiero tam S3
+  zapala sie w kierunku prograde = tangentialnym. Circularyzacja Hohmannem.
+
+Transformacja: F = T * v_hat  (prograde) lub T*(sin*r_hat + cos*t_hat) dla programu.
   r_hat = (x,y)/r,  t_hat = (-y,x)/r (prograde, CCW)
+  pitch=pi/2 → radialny (pionowy); pitch=0 → tangentialny (poziomy).
 
 Faza 1 ASCENT:  cial + g(r) + opor D(rho,v)
 Faza 2 INSERTION: cial + g(r), opor pomijalny
@@ -14,56 +23,86 @@ Faza 2 INSERTION: cial + g(r), opor pomijalny
 Zdarzenia terminalne (kolejnosc priorytetu):
   ev_burnout    — czas pracy stopnia wyczerpany
   ev_drag_neg   — D/(m*g) < DRAG_EPS (koniec atmosferycznego oporu)
-  ev_orbit_ok   — orbita zwiazana z perygeum > prog (cutoff wstawienia)
+  ev_vcir_cutoff — v >= sqrt(mu/r) przy h > CUTOFF_MIN_ALT (gorny stopien)
 """
 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
 from scipy.integrate import solve_ivp  # type: ignore[import-untyped]
 
 from dt_contracts import EventKind, MissionEvent, Phase, TelemetryFrame
-from dt_contracts.constants import MAX_ECCENTRICITY_LEO, MIN_PERIAPSIS_ALTITUDE, MU_EARTH, R_EARTH
+from dt_contracts.constants import MIN_PERIAPSIS_ALTITUDE, MU_EARTH, R_EARTH
 
 from .atmosphere import air_density, dynamic_pressure
 from .forces import gravity_accel
 
-# Profil kata: pionowy start, szybkie kladzenie w S1, prawie poziomy od S2
-# Agresywne kladzenie skraca czas radialnego ciagu -> mniejsza predkosc radialna
-# na koncu S2 -> lepsza ekscentrycznosc przy wstawieniu
-PITCH_TURN_START: float = 5.0       # [s] szybko zacznij kladz
-PITCH_TURN_END: float = 80.0        # [s] juz w trakcie S1 skoncz kladzenie
-PITCH_FINAL_RAD: float = math.radians(4.0)  # prawie poziomy
+# ---------------------------------------------------------------------------
+# Profil kata ciagu — time-based pitch program + prograde tracking
+# ---------------------------------------------------------------------------
 
-DRAG_EPS: float = 5e-4   # prog D/(m*g)
+# Program czasowy zapewnia, ze pozny S1 (wysoka T/m, ~78 m/s^2) pali prawie poziomo.
+# Pitch=pi/2 → pionowo; pitch=0 → poziomo (tangentialnie).
 
-_IVP_OPTS: dict = dict(method="RK45", rtol=1e-7, atol=1e-7, max_step=1.0)
+PITCH_KICK_START: float = 10.0              # [s] poczatek zwrotu; ponizej: pionowo
+PITCH_END_TIME: float = 95.0               # [s] koniec programu; po nim: prograde
+PITCH_FINAL_RAD: float = math.radians(4.0) # kat na koncu programu (prawie poziomy)
+
+# Cutoff gornego stopnia — odciecie ciagu gdy v dorownuje v_circ
+# Bramka h > CUTOFF_MIN_ALT zapobiega przedwczesnemu odpalu tuż po starcie.
+CUTOFF_MIN_ALT: float = MIN_PERIAPSIS_ALTITUDE  # [m] = 200 km
+
+# Faza wybiegowa (coast) — max czas swobodnego lotu do apoapsis przed S3.
+# Orbit S2 ma apoapsis ~1260 km (z danych misji), co zajmuje ~1200 s.
+COAST_MAX_TIME: float = 1800.0  # [s] limit bezpieczenstwa
+
+DRAG_EPS: float = 5e-4   # prog D/(m*g) dla wylaczenia oporu
+_IVP_OPTS: dict = dict(method="RK45", rtol=1e-8, atol=1e-8, max_step=1.0)
 
 
 # ---------------------------------------------------------------------------
-# Pomocnicze geometryczne
+# Wektor ciagu — time-based pitch program + prograde tracking
 # ---------------------------------------------------------------------------
 
-def _pitch(t: float) -> float:
-    if t <= PITCH_TURN_START:
-        return math.pi / 2.0
-    if t >= PITCH_TURN_END:
-        return PITCH_FINAL_RAD
-    frac = (t - PITCH_TURN_START) / (PITCH_TURN_END - PITCH_TURN_START)
-    return math.pi / 2.0 + frac * (PITCH_FINAL_RAD - math.pi / 2.0)
+def _thrust_vec(x: float, y: float, vx: float, vy: float,
+                thrust: float, t: float) -> tuple[float, float]:
+    """Wektor ciagu: czasowy program zwrotu w S1 → prograde tracking w S2/S3.
 
+    t < PITCH_KICK_START     : czysto radialny (pionowo)
+    PITCH_KICK_START..PITCH_END_TIME: pitch liniowo z pi/2 → PITCH_FINAL_RAD
+    t > PITCH_END_TIME       : ciag = kierunek predkosci (prograde tracking)
 
-def _thrust_vec(x: float, y: float, thrust: float, t: float) -> tuple[float, float]:
+    Po apoapsis (coast), faza S3: prograde = tangentialny (v_r~0 w apoapsis),
+    co daje circularyzacje Hohmannem minimalnym zuzycie propellentu.
+    """
     r = math.sqrt(x * x + y * y)
-    rx, ry = x / r, y / r
-    tx, ty = -y / r, x / r
-    sp, cp = math.sin(_pitch(t)), math.cos(_pitch(t))
-    return thrust * (sp * rx + cp * tx), thrust * (sp * ry + cp * ty)
+    rx, ry = x / r, y / r      # r_hat (radialny = "pionowo w gore")
+    tx, ty = -y / r, x / r    # t_hat (prograde, CCW)
 
+    if t < PITCH_KICK_START:
+        return thrust * rx, thrust * ry
+
+    if t < PITCH_END_TIME:
+        frac = (t - PITCH_KICK_START) / (PITCH_END_TIME - PITCH_KICK_START)
+        pitch = math.pi / 2.0 + frac * (PITCH_FINAL_RAD - math.pi / 2.0)
+        sp, cp = math.sin(pitch), math.cos(pitch)
+        return thrust * (sp * rx + cp * tx), thrust * (sp * ry + cp * ty)
+
+    # Prograde tracking: ciag = kierunek predkosci
+    v2 = vx * vx + vy * vy
+    if v2 < 1.0:
+        return thrust * rx, thrust * ry
+    v = math.sqrt(v2)
+    return thrust * vx / v, thrust * vy / v
+
+
+# ---------------------------------------------------------------------------
+# Sila oporu — pomocnicza (inline, by uniknac importu forces w tym scope)
+# ---------------------------------------------------------------------------
 
 def _drag_force(x: float, y: float, vx: float, vy: float,
                 cd: float, area: float) -> tuple[float, float]:
@@ -77,37 +116,6 @@ def _drag_force(x: float, y: float, vx: float, vy: float,
     return -d * vx / v, -d * vy / v
 
 
-def _keplerian_check(x: float, y: float, vx: float, vy: float) -> tuple[float, float, float]:
-    """Zwraca (eps, e, periapsis_alt) z wektora stanu 2D.
-
-    Wzor mimosrodu z dokumentu PHYSICS_THEORY_BASE.md (Laplace vector):
-      h = x*vy - y*vx
-      e_x = vy*h/mu - x/r
-      e_y = -vx*h/mu - y/r
-      e = sqrt(e_x^2 + e_y^2)
-    """
-    r = math.sqrt(x * x + y * y)
-    v2 = vx * vx + vy * vy
-    eps = 0.5 * v2 - MU_EARTH / r
-
-    h = x * vy - y * vx
-    e_x = vy * h / MU_EARTH - x / r
-    e_y = -vx * h / MU_EARTH - y / r
-    e = math.sqrt(e_x * e_x + e_y * e_y)
-
-    if eps >= 0 or e >= 1.0:
-        return eps, e, float("-inf")
-
-    a = -MU_EARTH / (2.0 * eps)
-    r_p = a * (1.0 - e)
-    return eps, e, r_p - R_EARTH
-
-
-def _state_summary(s: np.ndarray) -> tuple[float, float]:
-    x, y, vx, vy, _ = s
-    return math.sqrt(x*x + y*y) - R_EARTH, math.sqrt(vx*vx + vy*vy)
-
-
 # ---------------------------------------------------------------------------
 # RHS — czyste funkcje
 # ---------------------------------------------------------------------------
@@ -118,9 +126,9 @@ def _rhs_ascent(thrust: float, mflow: float, cd: float, area: float
         x, y, vx, vy, m = s
         m = max(m, 1.0)
         gx, gy = gravity_accel(x, y)
-        ftx, fty = _thrust_vec(x, y, thrust, t)
+        ftx, fty = _thrust_vec(x, y, vx, vy, thrust, t)
         fdx, fdy = _drag_force(x, y, vx, vy, cd, area)
-        return np.array([vx, vy, (ftx+fdx)/m+gx, (fty+fdy)/m+gy, -mflow])
+        return np.array([vx, vy, (ftx + fdx) / m + gx, (fty + fdy) / m + gy, -mflow])
     return rhs
 
 
@@ -129,13 +137,13 @@ def _rhs_insertion(thrust: float, mflow: float) -> Callable[[float, np.ndarray],
         x, y, vx, vy, m = s
         m = max(m, 1.0)
         gx, gy = gravity_accel(x, y)
-        ftx, fty = _thrust_vec(x, y, thrust, t)
-        return np.array([vx, vy, ftx/m+gx, fty/m+gy, -mflow])
+        ftx, fty = _thrust_vec(x, y, vx, vy, thrust, t)
+        return np.array([vx, vy, ftx / m + gx, fty / m + gy, -mflow])
     return rhs
 
 
 # ---------------------------------------------------------------------------
-# Zdarzenia
+# Zdarzenia terminalne
 # ---------------------------------------------------------------------------
 
 def _ev_burnout(t_burnout: float) -> Callable:
@@ -150,10 +158,10 @@ def _ev_drag_negligible(cd: float, area: float) -> Callable:
     def ev(t: float, s: np.ndarray) -> float:  # noqa: ARG001
         x, y, vx, vy, m = s
         m = max(m, 1.0)
-        r2 = x*x + y*y
+        r2 = x * x + y * y
         alt = math.sqrt(r2) - R_EARTH
         rho = air_density(alt)
-        v2 = vx*vx + vy*vy
+        v2 = vx * vx + vy * vy
         d = 0.5 * rho * v2 * cd * area
         g = MU_EARTH / r2
         ratio = d / (m * g) if m * g > 0 else 0.0
@@ -163,28 +171,50 @@ def _ev_drag_negligible(cd: float, area: float) -> Callable:
     return ev
 
 
-def _ev_orbit_achieved() -> Callable:
-    """Terminal: zatrzymaj palenie gdy orbita LEO jest osiagnieta.
+def _rhs_coast() -> Callable[[float, np.ndarray], np.ndarray]:
+    """RHS bez ciagu: czysta grawitacja (Keplerowski lot swobodny)."""
+    def rhs(t: float, s: np.ndarray) -> np.ndarray:
+        x, y, vx, vy, m = s
+        gx, gy = gravity_accel(x, y)
+        return np.array([vx, vy, gx, gy, 0.0])
+    return rhs
 
-    Funkcja przecina ZERO gdy perygeum osiaga MIN_PERIAPSIS_ALTITUDE
-    (przy spelnionej energii i mimosrodzie). scipy.brentq wymaga realnego
-    przejscia przez zero — tu: peri_alt - MIN_PERIAPSIS_ALTITUDE.
 
-    direction=1: zdarzenie odpala przy przejsciu z ujemnego na dodatni
-    (perygeum rosnie i przekracza prog 200 km od dolu).
+def _ev_apoapsis() -> Callable:
+    """Apoapsis: radialny skladnik predkosci v_r przechodzi przez zero (+ → -).
+
+    v_r = (r_vec · v_vec) / |r_vec| = (x*vx + y*vy) / r.
+    direction=-1: odpala gdy v_r maleje i przekracza zero z gory.
+    """
+    def ev(t: float, s: np.ndarray) -> float:
+        x, y, vx, vy, m = s  # noqa: F841
+        r = math.sqrt(x * x + y * y)
+        return (x * vx + y * vy) / r
+    ev.terminal = True   # type: ignore[attr-defined]
+    ev.direction = -1    # type: ignore[attr-defined]
+    return ev
+
+
+def _ev_vcir_cutoff() -> Callable:
+    """Cutoff gornego stopnia: v >= v_circ(r) przy h > CUTOFF_MIN_ALT.
+
+    W chwili odpalu: eps = v^2/2 - mu/r = mu/(2r) - mu/r = -mu/(2r) < 0 (zawsze
+    zwiazana) i e = |sin(FPA)| — mimosrod zalezy od FPA w tej chwili.
+
+    Bramka altitudowa (h > CUTOFF_MIN_ALT) zapobiega odpaleniu w atmosferze.
+    direction=1: zdarzenie odpala gdy v rosnie i przekracza v_circ.
     """
     def ev(t: float, s: np.ndarray) -> float:  # noqa: ARG001
         x, y, vx, vy, m = s  # noqa: F841
-        eps, e, peri_alt = _keplerian_check(x, y, vx, vy)
-        # Jezeli ε ≥ 0 lub e > MAX: warunki niespelnione (duze ujemne)
-        if eps >= 0 or e > MAX_ECCENTRICITY_LEO:
-            return -MIN_PERIAPSIS_ALTITUDE  # ujemne, duze
-        # Gdy warunki ε i e spelnione: zwroc peri_alt - prog
-        # Ujemne gdy peri za nizko, dodatnie gdy OK → przejscie przez zero
-        return peri_alt - MIN_PERIAPSIS_ALTITUDE
-
+        r2 = x * x + y * y
+        r = math.sqrt(r2)
+        alt = r - R_EARTH
+        if alt < CUTOFF_MIN_ALT:
+            return -1.0  # bramka wysokosciowa
+        v2 = vx * vx + vy * vy
+        return v2 - MU_EARTH / r  # zero gdy v = v_circ
     ev.terminal = True   # type: ignore[attr-defined]
-    ev.direction = 1     # type: ignore[attr-defined]  # ujemny → dodatni
+    ev.direction = 1     # type: ignore[attr-defined]
     return ev
 
 
@@ -202,8 +232,8 @@ class FlightSegment:
 
 def state_to_frame(t: float, y: np.ndarray, phase: Phase, stage_idx: int) -> TelemetryFrame:
     x, yc, vx, vy, m = y
-    alt = math.sqrt(x*x + yc*yc) - R_EARTH
-    spd = math.sqrt(vx*vx + vy*vy)
+    alt = math.sqrt(x * x + yc * yc) - R_EARTH
+    spd = math.sqrt(vx * vx + vy * vy)
     q = dynamic_pressure(alt, spd)
     return TelemetryFrame(
         t=t, x=x, y=yc, vx=vx, vy=vy, mass=max(m, 1e-3),
@@ -246,37 +276,82 @@ def run_flight(
         t_limit = min(t_burnout + 0.1, max_flight_time)
 
         # ----------------------------------------------------------------
+        # Pre-check: czy drag juz zaniedbywalny na poczatku stopnia?
+        # Potrzebne gdy stopien startuje po burnoucie poprzedniego na duzej
+        # wysokosci — solve_ivp nie wykrywa zdarzenia jesli funkcja jest juz
+        # po przejsciu (direction=-1 ale wartosc startuje ujemna).
+        # ----------------------------------------------------------------
+        if not drag_done:
+            _x, _y, _vx, _vy, _ms = state
+            _ms = max(_ms, 1.0)
+            _r2 = _x * _x + _y * _y
+            _r = math.sqrt(_r2)
+            _alt = _r - R_EARTH
+            _rho = air_density(_alt)
+            _v2 = _vx * _vx + _vy * _vy
+            _d = 0.5 * _rho * _v2 * s.drag_coefficient * s.reference_area
+            _g = MU_EARTH / _r2
+            if _ms * _g > 0 and _d / (_ms * _g) < DRAG_EPS:
+                drag_done = True
+
+        # ----------------------------------------------------------------
         # Sub-etap A: calkowanie z oporem (jesli drag jeszcze nie pomijalny)
         # ----------------------------------------------------------------
         if not drag_done:
             rhs_a = _rhs_ascent(s.thrust, s.mass_flow, s.drag_coefficient, s.reference_area)
-            evs_a = [_ev_burnout(t_burnout), _ev_drag_negligible(s.drag_coefficient, s.reference_area)]
+            evs_a = [
+                _ev_burnout(t_burnout),
+                _ev_drag_negligible(s.drag_coefficient, s.reference_area),
+            ]
             sol = _integrate(rhs_a, state, t_now, t_limit, evs_a)
             segments.append(FlightSegment(sol.t, sol.y, Phase.ASCENT, idx))
             state = sol.y[:, -1].copy()
             t_now = float(sol.t[-1])
 
-            # drag pomijalny — przejdz do B bez przerywania stopnia
             if sol.t_events[1].size > 0:
                 drag_done = True
                 t_d = float(sol.t_events[1][0])
                 yd = sol.y_events[1][0]
-                alt_d, spd_d = _state_summary(yd)
+                alt_d = math.sqrt(yd[0]**2 + yd[1]**2) - R_EARTH
+                spd_d = math.sqrt(yd[2]**2 + yd[3]**2)
                 events_out.append(MissionEvent(
                     kind=EventKind.DRAG_NEGLIGIBLE, t=t_d,
                     altitude=alt_d, speed=spd_d,
                     note=f"D/mg<{DRAG_EPS:.0e} @ h={alt_d/1000:.1f}km",
                 ))
-                # Dopal resztke stopnia bez oporu (sub-etap B ponizej)
+
+        # ----------------------------------------------------------------
+        # Faza wybiegowa (coast) przed ostatnim stopniem — Hohmann insertion
+        # Rakieta coastuje balistycznie do apoapsis orbity S1+S2.
+        # W apoapsis v_r=0, wiec prograde S3 = tangentialny → optymalna
+        # circularyzacja, FPA<<1deg przy v_circ cutoff.
+        # ----------------------------------------------------------------
+        is_last = (idx >= len(stages_params) - 1)
+        if is_last and drag_done and not orbit_achieved:
+            rhs_c = _rhs_coast()
+            t_coast_end = min(t_now + COAST_MAX_TIME, max_flight_time)
+            sol_c = _integrate(rhs_c, state, t_now, t_coast_end, [_ev_apoapsis()])
+            segments.append(FlightSegment(sol_c.t, sol_c.y, Phase.INSERTION, idx))
+            state = sol_c.y[:, -1].copy()
+            t_now = float(sol_c.t[-1])
+            alt_apo = math.sqrt(state[0]**2 + state[1]**2) - R_EARTH
+            spd_apo = math.sqrt(state[2]**2 + state[3]**2)
+            events_out.append(MissionEvent(
+                kind=EventKind.APOGEE, t=t_now,
+                altitude=alt_apo, speed=spd_apo,
+                note=f"apoapsis coast h={alt_apo/1000:.0f}km v={spd_apo:.0f}m/s",
+            ))
+            # Aktualizuj t_limit na nowy burn_time od t_now
+            t_burnout = t_now + s.burn_time
+            t_limit = min(t_burnout + 0.1, max_flight_time)
 
         # ----------------------------------------------------------------
         # Sub-etap B: calkowanie bez oporu (wstawienie)
         # ----------------------------------------------------------------
         if drag_done and t_now < t_burnout - 0.01 and not orbit_achieved:
             rhs_b = _rhs_insertion(s.thrust, s.mass_flow)
-            # Od S3 dodaj zdarzenie cutoff wstawienia (nie w S1/S2 - za wczesnie)
-            if idx >= len(stages_params) - 1:
-                evs_b = [_ev_burnout(t_burnout), _ev_orbit_achieved()]
+            if is_last:
+                evs_b = [_ev_burnout(t_burnout), _ev_vcir_cutoff()]
             else:
                 evs_b = [_ev_burnout(t_burnout)]
             sol_b = _integrate(rhs_b, state, t_now, t_limit, evs_b)
@@ -284,14 +359,15 @@ def run_flight(
             state = sol_b.y[:, -1].copy()
             t_now = float(sol_b.t[-1])
 
-            # Sprawdz orbit achieved (zdarzenie index=1 w ostatnim stopniu)
-            if idx >= len(stages_params) - 1 and len(sol_b.t_events) > 1 and sol_b.t_events[1].size > 0:
+            # vcir_cutoff odpalony (index 1) => orbita osiagnieta
+            if is_last and len(sol_b.t_events) > 1 and sol_b.t_events[1].size > 0:
                 orbit_achieved = True
 
         # ----------------------------------------------------------------
         # Burnout + separacja
         # ----------------------------------------------------------------
-        alt_bo, spd_bo = _state_summary(state)
+        alt_bo = math.sqrt(state[0]**2 + state[1]**2) - R_EARTH
+        spd_bo = math.sqrt(state[2]**2 + state[3]**2)
         events_out.append(MissionEvent(
             kind=EventKind.STAGE_BURNOUT, t=t_now,
             altitude=alt_bo, speed=spd_bo,
@@ -310,7 +386,8 @@ def run_flight(
         if t_now >= max_flight_time or orbit_achieved:
             break
 
-    alt_ins, spd_ins = _state_summary(state)
+    alt_ins = math.sqrt(state[0]**2 + state[1]**2) - R_EARTH
+    spd_ins = math.sqrt(state[2]**2 + state[3]**2)
     events_out.append(MissionEvent(
         kind=EventKind.ORBIT_INSERTION, t=t_now,
         altitude=alt_ins, speed=spd_ins,
