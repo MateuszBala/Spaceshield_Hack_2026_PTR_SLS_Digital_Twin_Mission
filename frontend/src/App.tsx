@@ -9,6 +9,7 @@ import VerdictCard from './components/VerdictCard';
 import MissionTimeline from './components/MissionTimeline';
 import TelemetryHUD from './components/TelemetryHUD';
 import TelemetryFieldChart from './components/TelemetryFieldChart';
+import OrbitalPlot from './components/OrbitalPlot';
 
 const G0 = 9.806_65;
 
@@ -130,17 +131,25 @@ export default function App() {
                 maxDynQ={result.max_dynamic_pressure}
               />
 
-              {/* 2. Mission timeline — SpaceX-style */}
+              {/* 2. Orbital plot — 2D space view (x, y from engine) */}
+              {result.telemetry.length > 0 && (
+                <OrbitalPlot
+                  telemetry={result.telemetry}
+                  events={result.events}
+                />
+              )}
+
+              {/* 3. Mission timeline — SpaceX-style */}
               {result.events.length > 0 && (
                 <MissionTimeline events={result.events} />
               )}
 
-              {/* 3. Telemetry HUD — broadcast-style with scrubber */}
+              {/* 4. Telemetry HUD — broadcast-style with scrubber */}
               {result.telemetry.length > 0 && (
                 <TelemetryHUD telemetry={result.telemetry} />
               )}
 
-              {/* 4. Trajectory chart */}
+              {/* 5. Trajectory chart — altitude vs time */}
               {result.telemetry.length > 0 && (
                 <TrajectoryChart
                   telemetry={result.telemetry}
@@ -148,7 +157,7 @@ export default function App() {
                 />
               )}
 
-              {/* 5. G-force chart */}
+              {/* 6. G-force chart */}
               {result.telemetry.length > 0 && (
                 <TelemetryFieldChart
                   telemetry={result.telemetry}
@@ -161,7 +170,7 @@ export default function App() {
                 />
               )}
 
-              {/* 6. Dynamic pressure — Q profile */}
+              {/* 7. Dynamic pressure — Q profile */}
               {result.telemetry.length > 0 && (
                 <TelemetryFieldChart
                   telemetry={result.telemetry}
