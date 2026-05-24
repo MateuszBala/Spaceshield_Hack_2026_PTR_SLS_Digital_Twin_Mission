@@ -1,8 +1,11 @@
 """Orchestrator symulacji - publiczny punkt wejscia dt_physics.
 
-simulate(RocketParams) -> SimResult  — kontrakt zewnetrzny.
-Implementacja przyrostowa: krok 1 = zasiepka strukturalna (poprawny kontrakt,
-bez fizyki); krok 2+ = realna trajektoria (see BRIEF-engine-01).
+simulate(SimRequest) -> SimResult  — kontrakt zewnetrzny.
+Parametry rakiety czytane jako request.rocket; request.include_telemetry
+steruje obecnoscia pelnej telemetrii; request.max_flight_time to twardy
+limit t_span w solve_ivp.
+Implementacja przyrostowa: krok 1 = zasiepka strukturalna; krok 2+ = realna
+trajektoria (see BRIEF-engine-02).
 """
 
 from __future__ import annotations
@@ -12,12 +15,12 @@ from dt_contracts import (
     MissionEvent,
     OrbitVerdict,
     Phase,
-    RocketParams,
+    SimRequest,
     SimResult,
 )
 
 
-def simulate(rocket: RocketParams) -> SimResult:  # noqa: ARG001
+def simulate(request: SimRequest) -> SimResult:  # noqa: ARG001
     """Oblicz trajektorie misji i zwroc wynik zgodny z kontraktem.
 
     Krok 1 (stub): zwraca poprawny strukturalnie SimResult z reached_orbit=False.
