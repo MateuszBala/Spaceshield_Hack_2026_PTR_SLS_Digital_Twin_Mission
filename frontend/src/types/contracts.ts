@@ -96,6 +96,13 @@ export interface SimResult {
   telemetry: TelemetryFrame[];
 }
 
-export interface Capabilities {
+// Full response shape from GET /capabilities (dt_api.routes.CapabilitiesResponse)
+export interface CapabilitiesResponse {
+  contract_version: string;
+  engine_available: boolean;
   ai_available: boolean;
+  api_version: string;
 }
+
+// Backward-compat alias used internally before full type was known
+export type Capabilities = CapabilitiesResponse;

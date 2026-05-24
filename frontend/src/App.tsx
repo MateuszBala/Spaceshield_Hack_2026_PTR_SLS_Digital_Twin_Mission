@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DEFAULT_PRESET } from './data/preset';
 import { generateSyntheticResult } from './data/syntheticResult';
 import { fetchCapabilities, fetchSimulate } from './api/client';
-import type { RocketParams, SimResult } from './types/contracts';
+import type { RocketParams, SimResult, CapabilitiesResponse } from './types/contracts';
 import RocketForm from './components/RocketForm';
 import TrajectoryChart from './components/TrajectoryChart';
 import VerdictCard from './components/VerdictCard';
@@ -17,13 +17,13 @@ export default function App() {
   const [result, setResult] = useState<SimResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [aiAvailable, setAiAvailable] = useState(false);
+  const [caps, setCaps] = useState<CapabilitiesResponse | null>(null);
   const [dataSource, setDataSource] = useState<'api' | 'synthetic' | null>(null);
 
   useEffect(() => {
     fetchCapabilities()
-      .then(caps => setAiAvailable(caps.ai_available))
-      .catch(() => setAiAvailable(false));
+      .then(c => setCaps(c))
+      .catch(() => setCaps(null));
   }, []);
 
   const handleSimulate = async () => {
@@ -34,7 +34,7 @@ export default function App() {
       setResult(res);
       setDataSource('api');
     } catch {
-      // API unreachable — synthetic fallback (Digital Twin demo mode)
+      // API unreachable — synthetic fallback (offline demo mode)
       const synth = generateSyntheticResult(rocket);
       setResult(synth);
       setDataSource('synthetic');
@@ -42,6 +42,10 @@ export default function App() {
       setIsLoading(false);
     }
   };
+
+  const engineAvailable = caps?.engine_available ?? false;
+  const aiAvailable     = caps?.ai_available     ?? false;
+  const apiReachable    = caps !== null;
 
   return (
     <div className="app">
@@ -52,19 +56,33 @@ export default function App() {
         </div>
         <div className="header-badges">
           {dataSource === 'synthetic' && (
-            <span className="badge badge-synth" title="API niedostępne — dane syntetyczne (Tsiolkovsky)">
-              Tryb demo
+            <span className="badge badge-synth" title="API niedostępne — dane syntetyczne (Tsiolkovsky JS)">
+              Tryb demo offline
             </span>
           )}
-          {dataSource === 'api' && (
-            <span className="badge badge-api">API live</span>
+          {dataSource === 'api' && engineAvailable && (
+            <span className="badge badge-api" title="Werdykt z silnika fizycznego">
+              API live · silnik ✓
+            </span>
           )}
-          <span
-            className={`badge ${aiAvailable ? 'badge-ai-ok' : 'badge-ai-off'}`}
-            title={aiAvailable ? 'Pakiet AI dostępny' : 'Pakiet AI niedostępny (ADR graceful-ai)'}
-          >
-            AI: {aiAvailable ? 'on' : 'off'}
-          </span>
+          {dataSource === 'api' && !engineAvailable && (
+            <span className="badge badge-synth" title="API odpowiada, ale silnik zwraca stub">
+              API live · silnik stub
+            </span>
+          )}
+          {apiReachable && (
+            <span
+              className={`badge ${aiAvailable ? 'badge-ai-ok' : 'badge-ai-off'}`}
+              title={aiAvailable ? 'Pakiet AI dostępny' : 'Pakiet AI niedostępny (ADR graceful-ai)'}
+            >
+              AI: {aiAvailable ? 'on' : 'off'}
+            </span>
+          )}
+          {!apiReachable && (
+            <span className="badge badge-ai-off" title="Brak połączenia z API">
+              API offline
+            </span>
+          )}
         </div>
       </header>
 
@@ -85,7 +103,13 @@ export default function App() {
           {!result && !isLoading && (
             <div className="empty-state">
               <div className="empty-icon">📡</div>
-              <p>Ustaw parametry rakiety i kliknij <strong>Przelicz</strong>,<br />aby uruchomić symulację.</p>
+              <p>Ustaw parametry rakiety i kliknij <strong>Przelicz</strong>,<br />
+                aby uruchomić symulację.</p>
+              {!apiReachable && (
+                <p style={{ marginTop: 12, fontSize: 12, color: 'var(--accent-yellow)' }}>
+                  API offline — wyniki będą z modelu syntetycznego.
+                </p>
+              )}
             </div>
           )}
 
@@ -107,7 +131,9 @@ export default function App() {
               />
 
               {/* 2. Mission timeline — SpaceX-style */}
-              <MissionTimeline events={result.events} />
+              {result.events.length > 0 && (
+                <MissionTimeline events={result.events} />
+              )}
 
               {/* 3. Telemetry HUD — broadcast-style with scrubber */}
               {result.telemetry.length > 0 && (
@@ -115,12 +141,14 @@ export default function App() {
               )}
 
               {/* 4. Trajectory chart */}
-              <TrajectoryChart
-                telemetry={result.telemetry}
-                events={result.events}
-              />
+              {result.telemetry.length > 0 && (
+                <TrajectoryChart
+                  telemetry={result.telemetry}
+                  events={result.events}
+                />
+              )}
 
-              {/* 5. G-force chart — generic TelemetryFieldChart */}
+              {/* 5. G-force chart */}
               {result.telemetry.length > 0 && (
                 <TelemetryFieldChart
                   telemetry={result.telemetry}
