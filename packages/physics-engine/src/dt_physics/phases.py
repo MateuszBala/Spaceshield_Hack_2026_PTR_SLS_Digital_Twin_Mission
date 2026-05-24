@@ -228,16 +228,30 @@ class FlightSegment:
     y: np.ndarray
     phase: Phase
     stage_idx: int
+    accel: np.ndarray | None = None  # |a| = sqrt(ax²+ay²) per krok [m/s²]
 
 
-def state_to_frame(t: float, y: np.ndarray, phase: Phase, stage_idx: int) -> TelemetryFrame:
+def _compute_accel(rhs: Callable, t_arr: np.ndarray, y_arr: np.ndarray) -> np.ndarray:
+    """Modul przyspieszenia |a|=sqrt(ax²+ay²) dla kazdego punktu trajektorii.
+
+    Wywoluje RHS (ten sam co w solve_ivp) i wyciaga skladowe ax=d[2], ay=d[3].
+    """
+    out = np.empty(len(t_arr))
+    for i in range(len(t_arr)):
+        d = rhs(float(t_arr[i]), y_arr[:, i])
+        out[i] = math.sqrt(d[2] * d[2] + d[3] * d[3])
+    return out
+
+
+def state_to_frame(t: float, y: np.ndarray, phase: Phase, stage_idx: int,
+                   accel: float = 0.0) -> TelemetryFrame:
     x, yc, vx, vy, m = y
     alt = math.sqrt(x * x + yc * yc) - R_EARTH
     spd = math.sqrt(vx * vx + vy * vy)
     q = dynamic_pressure(alt, spd)
     return TelemetryFrame(
         t=t, x=x, y=yc, vx=vx, vy=vy, mass=max(m, 1e-3),
-        altitude=alt, speed=spd, dynamic_pressure=q, acceleration=0.0,
+        altitude=alt, speed=spd, dynamic_pressure=q, acceleration=accel,
         phase=phase, active_stage=stage_idx,
     )
 
@@ -291,7 +305,7 @@ def run_flight(
             _v2 = _vx * _vx + _vy * _vy
             _d = 0.5 * _rho * _v2 * s.drag_coefficient * s.reference_area
             _g = MU_EARTH / _r2
-            if _ms * _g > 0 and _d / (_ms * _g) < DRAG_EPS:
+            if _v2 > 1.0 and _ms * _g > 0 and _d / (_ms * _g) < DRAG_EPS:
                 drag_done = True
 
         # ----------------------------------------------------------------
@@ -304,7 +318,8 @@ def run_flight(
                 _ev_drag_negligible(s.drag_coefficient, s.reference_area),
             ]
             sol = _integrate(rhs_a, state, t_now, t_limit, evs_a)
-            segments.append(FlightSegment(sol.t, sol.y, Phase.ASCENT, idx))
+            segments.append(FlightSegment(sol.t, sol.y, Phase.ASCENT, idx,
+                                          accel=_compute_accel(rhs_a, sol.t, sol.y)))
             state = sol.y[:, -1].copy()
             t_now = float(sol.t[-1])
 
@@ -331,7 +346,8 @@ def run_flight(
             rhs_c = _rhs_coast()
             t_coast_end = min(t_now + COAST_MAX_TIME, max_flight_time)
             sol_c = _integrate(rhs_c, state, t_now, t_coast_end, [_ev_apoapsis()])
-            segments.append(FlightSegment(sol_c.t, sol_c.y, Phase.INSERTION, idx))
+            segments.append(FlightSegment(sol_c.t, sol_c.y, Phase.INSERTION, idx,
+                                          accel=_compute_accel(rhs_c, sol_c.t, sol_c.y)))
             state = sol_c.y[:, -1].copy()
             t_now = float(sol_c.t[-1])
             alt_apo = math.sqrt(state[0]**2 + state[1]**2) - R_EARTH
@@ -355,7 +371,8 @@ def run_flight(
             else:
                 evs_b = [_ev_burnout(t_burnout)]
             sol_b = _integrate(rhs_b, state, t_now, t_limit, evs_b)
-            segments.append(FlightSegment(sol_b.t, sol_b.y, Phase.INSERTION, idx))
+            segments.append(FlightSegment(sol_b.t, sol_b.y, Phase.INSERTION, idx,
+                                          accel=_compute_accel(rhs_b, sol_b.t, sol_b.y)))
             state = sol_b.y[:, -1].copy()
             t_now = float(sol_b.t[-1])
 

@@ -32,7 +32,7 @@ from dt_contracts.constants import (
 
 from .analysis import keplerian_elements, orbit_verdict
 from .atmosphere import dynamic_pressure
-from .phases import FlightSegment, run_flight, state_to_frame
+from .phases import run_flight, state_to_frame
 
 # Minimalna predkosc orbitalna (kolowa) na MIN_PERIAPSIS_ALTITUDE — prog budzetu.
 # Fallback: total_dv - TYPICAL_LAUNCH_LOSSES_DV >= _LEO_DV_THRESHOLD -> orbita.
@@ -158,7 +158,8 @@ def simulate(request: SimRequest) -> SimResult:
             for i in range(len(seg.t)):
                 t_i = float(seg.t[i])
                 y_i = seg.y[:, i]
-                frame = state_to_frame(t_i, y_i, seg.phase, seg.stage_idx)
+                acc_i = float(seg.accel[i]) if seg.accel is not None else 0.0
+                frame = state_to_frame(t_i, y_i, seg.phase, seg.stage_idx, acc_i)
                 telemetry.append(frame)
                 if frame.altitude > max_altitude:
                     max_altitude = frame.altitude
