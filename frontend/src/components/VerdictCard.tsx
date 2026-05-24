@@ -5,54 +5,96 @@ interface Props {
   verdict: OrbitVerdict;
   maxAltitude: number;
   flightTime: number;
+  maxDynQ?: number;
 }
 
-function fmt(m: number, decimals = 1): string {
-  return (m / 1000).toFixed(decimals);
+function fmtKm(m: number, dec = 1): string {
+  return (m / 1000).toFixed(dec) + ' km';
 }
 
-export default function VerdictCard({ verdict, maxAltitude, flightTime }: Props) {
+function fmtMin(s: number): string {
+  return (s / 60).toFixed(1) + ' min';
+}
+
+function fmtSci(v: number): string {
+  // e.g. -29 000 000 → "-2.90 × 10⁷"
+  const exp = Math.floor(Math.log10(Math.abs(v)));
+  const mantissa = (v / Math.pow(10, exp)).toFixed(2);
+  return `${mantissa} × 10${superscript(exp)}`;
+}
+
+function superscript(n: number): string {
+  return String(n).split('').map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹⁻'['0123456789-'.indexOf(c)] ?? c).join('');
+}
+
+export default function VerdictCard({ verdict, maxAltitude, flightTime, maxDynQ }: Props) {
   const { reached_orbit, reason, elements } = verdict;
 
   return (
     <div className={`verdict-card ${reached_orbit ? 'orbit-ok' : 'orbit-fail'}`}>
-      <div className="verdict-headline">
-        {reached_orbit ? '✓ ORBITA OSIĄGNIĘTA' : '✗ BRAK ORBITY'}
+      {/* Headline */}
+      <div className="verdict-top">
+        <div className="verdict-icon">{reached_orbit ? '✓' : '✗'}</div>
+        <div className="verdict-headline">
+          {reached_orbit ? 'ORBITA OSIĄGNIĘTA' : 'BRAK ORBITY'}
+        </div>
       </div>
+
       <p className="verdict-reason">{reason}</p>
 
+      {/* Flight summary */}
+      <div className="verdict-section-label">Przebieg lotu</div>
       <div className="verdict-metrics">
         <div className="metric">
           <span className="metric-label">Maks. wysokość</span>
-          <span className="metric-value">{fmt(maxAltitude)} km</span>
+          <span className="metric-value">{fmtKm(maxAltitude)}</span>
         </div>
         <div className="metric">
           <span className="metric-label">Czas lotu</span>
           <span className="metric-value">{flightTime.toFixed(0)} s</span>
         </div>
-        {elements && (
-          <>
+        {maxDynQ !== undefined && (
+          <div className="metric">
+            <span className="metric-label">Max-Q</span>
+            <span className="metric-value">{Math.round(maxDynQ / 1000).toFixed(1)} kPa</span>
+          </div>
+        )}
+      </div>
+
+      {/* Orbital elements */}
+      {elements && (
+        <>
+          <div className="verdict-section-label" style={{ marginTop: 16 }}>Elementy orbitalne</div>
+          <div className="verdict-metrics">
             <div className="metric">
               <span className="metric-label">Perygeum</span>
-              <span className="metric-value">{fmt(elements.periapsis_altitude)} km</span>
+              <span className="metric-value orbit-value">{fmtKm(elements.periapsis_altitude)}</span>
             </div>
             <div className="metric">
               <span className="metric-label">Apogeum</span>
-              <span className="metric-value">{fmt(elements.apoapsis_altitude)} km</span>
+              <span className="metric-value orbit-value">{fmtKm(elements.apoapsis_altitude)}</span>
             </div>
             <div className="metric">
-              <span className="metric-label">Mimośród</span>
-              <span className="metric-value">{elements.eccentricity.toFixed(4)}</span>
+              <span className="metric-label">Mimośród (e)</span>
+              <span className="metric-value orbit-value">{elements.eccentricity.toFixed(4)}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Półoś wielka (a)</span>
+              <span className="metric-value orbit-value">{fmtKm(elements.semi_major_axis, 0)}</span>
             </div>
             {elements.period !== null && (
               <div className="metric">
-                <span className="metric-label">Okres</span>
-                <span className="metric-value">{(elements.period / 60).toFixed(1)} min</span>
+                <span className="metric-label">Okres orbitalny</span>
+                <span className="metric-value orbit-value">{fmtMin(elements.period)}</span>
               </div>
             )}
-          </>
-        )}
-      </div>
+            <div className="metric">
+              <span className="metric-label">Energia właściwa</span>
+              <span className="metric-value orbit-value mono">{fmtSci(elements.specific_energy)} J/kg</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

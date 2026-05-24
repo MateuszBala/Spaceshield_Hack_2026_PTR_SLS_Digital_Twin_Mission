@@ -434,8 +434,294 @@ body {
   margin-bottom: 12px;
 }
 
+/* ===== VerdictCard — enhanced ===== */
+.verdict-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.verdict-icon {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.orbit-ok  .verdict-icon { color: var(--accent-green); }
+.orbit-fail .verdict-icon { color: var(--accent-red); }
+
+.verdict-headline {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+}
+
+.orbit-ok  .verdict-headline { color: var(--accent-green); }
+.orbit-fail .verdict-headline { color: var(--accent-red); }
+
+.verdict-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-top: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.orbit-value { color: var(--accent-cyan) !important; }
+.mono { font-family: var(--font-mono); font-size: 12px !important; }
+
+/* ===== Mission Timeline — SpaceX-style ===== */
+.mission-timeline-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.mission-timeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  min-width: max-content;
+  padding: 8px 0 4px;
+}
+
+.timeline-connector {
+  flex-shrink: 0;
+  width: 28px;
+  height: 2px;
+  background: var(--border-bright);
+  margin-top: 11px;
+  align-self: flex-start;
+}
+
+.milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 80px;
+  max-width: 100px;
+  text-align: center;
+}
+
+.milestone-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border-bright);
+  border: 2px solid var(--text-muted);
+  flex-shrink: 0;
+}
+
+.milestone-highlight .milestone-dot {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.milestone-fail .milestone-dot {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}
+
+.milestone-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.milestone-highlight .milestone-label { color: var(--accent-green); }
+.milestone-fail .milestone-label      { color: var(--accent-red); }
+
+.milestone-time {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+}
+
+.milestone-data {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ===== Telemetry HUD — broadcast-style ===== */
+.hud-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.hud-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.hud-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.hud-tplus {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.hud-phase {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.hud-stage {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 8px;
+}
+
+.hud-main {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.hud-divider {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+}
+
+.hud-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 10px;
+  gap: 2px;
+}
+
+.hud-block-sm {
+  flex: 0.65;
+  padding: 14px 6px;
+}
+
+.hud-value {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text);
+  line-height: 1;
+}
+
+.hud-value-sm {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text);
+  line-height: 1;
+}
+
+.hud-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 0.08em;
+}
+
+.hud-sublabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.hud-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-scrub-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.hud-scrubber {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border-bright);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.hud-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+/* ===== Chart header ===== */
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chart-unit-badge {
+  font-size: 10px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 8px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
 /* ===== Scrollbar ===== */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2a3a50; }
@@ -445,4 +731,6 @@ body {
   .app-main { flex-direction: column; }
   .params-panel { width: 100%; max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
   .fields-grid { grid-template-columns: 1fr 1fr; }
+  .hud-value { font-size: 24px; }
+  .hud-block-sm { display: none; }
 }

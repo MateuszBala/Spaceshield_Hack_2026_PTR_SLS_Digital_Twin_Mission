@@ -6,6 +6,11 @@ import type { RocketParams, SimResult } from './types/contracts';
 import RocketForm from './components/RocketForm';
 import TrajectoryChart from './components/TrajectoryChart';
 import VerdictCard from './components/VerdictCard';
+import MissionTimeline from './components/MissionTimeline';
+import TelemetryHUD from './components/TelemetryHUD';
+import TelemetryFieldChart from './components/TelemetryFieldChart';
+
+const G0 = 9.806_65;
 
 export default function App() {
   const [rocket, setRocket] = useState<RocketParams>(DEFAULT_PRESET);
@@ -29,7 +34,7 @@ export default function App() {
       setResult(res);
       setDataSource('api');
     } catch {
-      // API unreachable — use synthetic data (Digital Twin demo mode)
+      // API unreachable — synthetic fallback (Digital Twin demo mode)
       const synth = generateSyntheticResult(rocket);
       setResult(synth);
       setDataSource('synthetic');
@@ -64,6 +69,7 @@ export default function App() {
       </header>
 
       <main className="app-main">
+        {/* ── Left: parameters ── */}
         <aside className="params-panel">
           <RocketForm
             params={rocket}
@@ -74,6 +80,7 @@ export default function App() {
           />
         </aside>
 
+        {/* ── Right: results ── */}
         <section className="results-panel">
           {!result && !isLoading && (
             <div className="empty-state">
@@ -91,15 +98,54 @@ export default function App() {
 
           {result && !isLoading && (
             <div className="results-content">
+              {/* 1. Verdict — first thing jury sees */}
               <VerdictCard
                 verdict={result.verdict}
                 maxAltitude={result.max_altitude}
                 flightTime={result.flight_time}
+                maxDynQ={result.max_dynamic_pressure}
               />
+
+              {/* 2. Mission timeline — SpaceX-style */}
+              <MissionTimeline events={result.events} />
+
+              {/* 3. Telemetry HUD — broadcast-style with scrubber */}
+              {result.telemetry.length > 0 && (
+                <TelemetryHUD telemetry={result.telemetry} />
+              )}
+
+              {/* 4. Trajectory chart */}
               <TrajectoryChart
                 telemetry={result.telemetry}
                 events={result.events}
               />
+
+              {/* 5. G-force chart — generic TelemetryFieldChart */}
+              {result.telemetry.length > 0 && (
+                <TelemetryFieldChart
+                  telemetry={result.telemetry}
+                  field="acceleration"
+                  label="G-Force (przyspieszenie)"
+                  unit="g"
+                  color="#ff6b35"
+                  transform={v => parseFloat((v / G0).toFixed(3))}
+                  events={result.events}
+                />
+              )}
+
+              {/* 6. Dynamic pressure — Q profile */}
+              {result.telemetry.length > 0 && (
+                <TelemetryFieldChart
+                  telemetry={result.telemetry}
+                  field="dynamic_pressure"
+                  label="Ciśnienie dynamiczne (Q)"
+                  unit="kPa"
+                  color="#ffd740"
+                  transform={v => parseFloat((v / 1000).toFixed(3))}
+                  events={result.events}
+                  height={160}
+                />
+              )}
             </div>
           )}
 

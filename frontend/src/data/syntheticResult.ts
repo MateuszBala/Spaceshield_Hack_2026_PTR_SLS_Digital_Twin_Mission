@@ -208,6 +208,18 @@ function buildEvents(rocket: RocketParams, segs: BurnSegment[], frames: Telemetr
     }
   }
 
+  // Final events (only when orbit reached)
+  if (reachesOrbit) {
+    const lastSeg = segs[segs.length - 1];
+    const ef = frameAt(lastSeg.t1 + 15);
+    events.push({ kind: 'payload_separation', t: lastSeg.t1 + 20, altitude: ef.altitude, speed: ef.speed, note: 'Separacja ładunku' });
+    events.push({ kind: 'orbit_insertion', t: lastSeg.t1 + 25, altitude: ef.altitude, speed: ef.speed, note: 'Wstawienie na orbitę' });
+  } else {
+    // Impact/apogee for failed mission
+    const apogeeFrame = frames.reduce((b, f) => f.altitude > b.altitude ? f : b, frames[0]);
+    events.push({ kind: 'apogee', t: apogeeFrame.t, altitude: apogeeFrame.altitude, speed: apogeeFrame.speed, note: 'Apogeum (misja nieudana)' });
+  }
+
   return events.sort((a, b) => a.t - b.t);
 }
 
