@@ -152,9 +152,9 @@ The [presentation/](presentation/) directory contains submission materials:
 
 | File | Description |
 |------|------|
-| Rocket_Digital_Twin__SpatiumCavum_team.pptx | Presentation (slides, editable) |
-| Rocket_Digital_Twin__SpatiumCavum_team.pdf | Presentation (PDF) |
-| dokumentacja.pdf | Full technical documentation: setup, UI description, physics foundations (formulas), architecture |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pptx](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pptx) | Presentation (slides, editable) |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pdf](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf) | Presentation (PDF) |
+| [dokumentacja.pdf](presentation/dokumentacja.pdf) | Full technical documentation: setup, UI description, physics foundations (formulas), architecture |
 
 ## Repository map
 

@@ -22,6 +22,10 @@
 
 ![Widok głównego okna aplikacji webowej](docs/imgs/RocketDigitaTwin_WebView.png)
 
+[Dokumentacja projektu](presentation/dokumentacja.pdf)
+
+[Prezentacja projektu](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf)
+
 ## Motywacja
 
 Projektowanie rakiety nośnej to gra kompromisów: masa stopni, ciąg silników, liczba
@@ -152,9 +156,9 @@ Katalog [`presentation/`](presentation/) zawiera materiały oddania:
 
 | Plik | Opis |
 |------|------|
-| `Rocket_Digital_Twin__SpatiumCavum_team.pptx` | Prezentacja (slajdy, edytowalne) |
-| `Rocket_Digital_Twin__SpatiumCavum_team.pdf` | Prezentacja (PDF) |
-| `dokumentacja.pdf` | Pełna dokumentacja techniczna: uruchomienie, opis interfejsu, podstawy fizyczne (wzory), architektura |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pptx](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pptx) | Prezentacja (slajdy, edytowalne) |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pdf](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf) | Prezentacja (PDF) |
+| [dokumentacja.pdf](presentation/dokumentacja.pdf) | Pełna dokumentacja techniczna: uruchomienie, opis interfejsu, podstawy fizyczne (wzory), architektura |
 
 ## Mapa repozytorium
 
