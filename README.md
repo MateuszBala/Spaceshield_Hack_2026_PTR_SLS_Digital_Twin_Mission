@@ -16,6 +16,8 @@
 
 **Zespół SpatiumCavum** · Hackaton Space Shield 2026
 
+[ENGLISH README VERSION](README_ENG.md)
+
 ---
 
 ![Widok głównego okna aplikacji webowej](docs/imgs/RocketDigitaTwin_WebView.png)
