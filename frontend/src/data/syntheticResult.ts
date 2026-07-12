@@ -11,13 +11,13 @@ import type {
   OrbitalElements,
   Phase,
 } from '../types/contracts';
+import type { Language } from '../i18n';
 
 const G0 = 9.806_65;              // m/s²  — dt_contracts.constants.G0
 const R_EARTH = 6_378_136.49;     // m     — dt_contracts.constants.R_EARTH
 const MU_EARTH = 3.986_004_418e14;// m³/s² — dt_contracts.constants.MU_EARTH
 const REQUIRED_DV = 9_300;        // m/s   — approximate for LEO 200 km
 const LOSSES = 1_750;             // m/s   — dt_contracts.constants.TYPICAL_LAUNCH_LOSSES_DV
-const MIN_PERIAPSIS = 200_000;    // m     — dt_contracts.constants.MIN_PERIAPSIS_ALTITUDE
 const LEO_ALT = 250_000;          // m     — target orbital altitude (synthetic)
 
 // --- Physics helpers ---
@@ -187,13 +187,20 @@ function generateTelemetry(
 
 // --- Event list ---
 
-function buildEvents(rocket: RocketParams, segs: BurnSegment[], frames: TelemetryFrame[]): MissionEvent[] {
+function buildEvents(
+  rocket: RocketParams,
+  segs: BurnSegment[],
+  frames: TelemetryFrame[],
+  reachesOrbit: boolean,
+  lang: Language,
+): MissionEvent[] {
+  const isEn = lang === 'en';
   const events: MissionEvent[] = [];
   const frameAt = (t: number): TelemetryFrame => frames.reduce((best, f) =>
     Math.abs(f.t - t) < Math.abs(best.t - t) ? f : best, frames[0]);
 
   // Liftoff
-  events.push({ kind: 'liftoff', t: 0, altitude: 0, speed: 0, note: 'Start' });
+  events.push({ kind: 'liftoff', t: 0, altitude: 0, speed: 0, note: isEn ? 'Launch' : 'Start' });
 
   // Max-Q: approximate at ~30s into flight
   const maxQ = frames.reduce((b, f) => f.dynamic_pressure > b.dynamic_pressure ? f : b, frames[0]);
@@ -202,9 +209,21 @@ function buildEvents(rocket: RocketParams, segs: BurnSegment[], frames: Telemetr
   // Stage events
   for (const seg of segs) {
     const bf = frameAt(seg.t1);
-    events.push({ kind: 'stage_burnout', t: seg.t1, altitude: bf.altitude, speed: bf.speed, note: `Wypalenie stopnia ${seg.stageIdx + 1}` });
+    events.push({
+      kind: 'stage_burnout',
+      t: seg.t1,
+      altitude: bf.altitude,
+      speed: bf.speed,
+      note: isEn ? `Stage ${seg.stageIdx + 1} burnout` : `Wypalenie stopnia ${seg.stageIdx + 1}`,
+    });
     if (seg.stageIdx < rocket.stages.length - 1) {
-      events.push({ kind: 'stage_separation', t: seg.t1 + 1, altitude: bf.altitude, speed: bf.speed, note: `Separacja stopnia ${seg.stageIdx + 1}` });
+      events.push({
+        kind: 'stage_separation',
+        t: seg.t1 + 1,
+        altitude: bf.altitude,
+        speed: bf.speed,
+        note: isEn ? `Stage ${seg.stageIdx + 1} separation` : `Separacja stopnia ${seg.stageIdx + 1}`,
+      });
     }
   }
 
@@ -212,12 +231,30 @@ function buildEvents(rocket: RocketParams, segs: BurnSegment[], frames: Telemetr
   if (reachesOrbit) {
     const lastSeg = segs[segs.length - 1];
     const ef = frameAt(lastSeg.t1 + 15);
-    events.push({ kind: 'payload_separation', t: lastSeg.t1 + 20, altitude: ef.altitude, speed: ef.speed, note: 'Separacja ładunku' });
-    events.push({ kind: 'orbit_insertion', t: lastSeg.t1 + 25, altitude: ef.altitude, speed: ef.speed, note: 'Wstawienie na orbitę' });
+    events.push({
+      kind: 'payload_separation',
+      t: lastSeg.t1 + 20,
+      altitude: ef.altitude,
+      speed: ef.speed,
+      note: isEn ? 'Payload separation' : 'Separacja ladunku',
+    });
+    events.push({
+      kind: 'orbit_insertion',
+      t: lastSeg.t1 + 25,
+      altitude: ef.altitude,
+      speed: ef.speed,
+      note: isEn ? 'Orbit insertion' : 'Wstawienie na orbite',
+    });
   } else {
     // Impact/apogee for failed mission
     const apogeeFrame = frames.reduce((b, f) => f.altitude > b.altitude ? f : b, frames[0]);
-    events.push({ kind: 'apogee', t: apogeeFrame.t, altitude: apogeeFrame.altitude, speed: apogeeFrame.speed, note: 'Apogeum (misja nieudana)' });
+    events.push({
+      kind: 'apogee',
+      t: apogeeFrame.t,
+      altitude: apogeeFrame.altitude,
+      speed: apogeeFrame.speed,
+      note: isEn ? 'Apogee (failed mission)' : 'Apogeum (misja nieudana)',
+    });
   }
 
   return events.sort((a, b) => a.t - b.t);
@@ -225,14 +262,15 @@ function buildEvents(rocket: RocketParams, segs: BurnSegment[], frames: Telemetr
 
 // --- Main entry point ---
 
-export function generateSyntheticResult(rocket: RocketParams): SimResult {
+export function generateSyntheticResult(rocket: RocketParams, lang: Language = 'pl'): SimResult {
+  const isEn = lang === 'en';
   const dv = estimateDeltaV(rocket);
   const effectiveDv = dv - LOSSES;
   const reachesOrbit = effectiveDv >= REQUIRED_DV;
 
   const segs = buildSegments(rocket);
   const telemetry = generateTelemetry(rocket, segs, reachesOrbit);
-  const events = buildEvents(rocket, segs, telemetry);
+  const events = buildEvents(rocket, segs, telemetry, reachesOrbit, lang);
 
   const maxAlt = Math.max(...telemetry.map(f => f.altitude));
   const maxQ = Math.max(...telemetry.map(f => f.dynamic_pressure));
@@ -252,12 +290,18 @@ export function generateSyntheticResult(rocket: RocketParams): SimResult {
       specific_energy: -MU_EARTH / (2 * a),
       period: 2 * Math.PI * Math.sqrt(a ** 3 / MU_EARTH),
     };
-    reason = `Orbita osiągnięta. Δv efektywne ${(effectiveDv / 1000).toFixed(1)} km/s ≥ wymagane ${(REQUIRED_DV / 1000).toFixed(1)} km/s.`;
+    reason = isEn
+      ? `Orbit achieved. Effective Delta-v ${(effectiveDv / 1000).toFixed(1)} km/s >= required ${(REQUIRED_DV / 1000).toFixed(1)} km/s.`
+      : `Orbita osiagnieta. Delta-v efektywne ${(effectiveDv / 1000).toFixed(1)} km/s >= wymagane ${(REQUIRED_DV / 1000).toFixed(1)} km/s.`;
   } else if (effectiveDv < 0) {
-    reason = `Za mały ciąg — rakieta nie wznosi się. Δv efektywne: ${(effectiveDv / 1000).toFixed(1)} km/s.`;
+    reason = isEn
+      ? `Thrust too low - the rocket cannot ascend. Effective Delta-v: ${(effectiveDv / 1000).toFixed(1)} km/s.`
+      : `Za maly ciag - rakieta nie wznosi sie. Delta-v efektywne: ${(effectiveDv / 1000).toFixed(1)} km/s.`;
   } else {
     const deficit = REQUIRED_DV - effectiveDv;
-    reason = `Niedobór Δv: ${(deficit / 1000).toFixed(1)} km/s. Osiągnięto max. ${(maxAlt / 1000).toFixed(0)} km. Wymagane Δv (po stratach): ≥${(REQUIRED_DV / 1000).toFixed(1)} km/s.`;
+    reason = isEn
+      ? `Delta-v deficit: ${(deficit / 1000).toFixed(1)} km/s. Max altitude reached: ${(maxAlt / 1000).toFixed(0)} km. Required Delta-v (after losses): >= ${(REQUIRED_DV / 1000).toFixed(1)} km/s.`
+      : `Niedobor Delta-v: ${(deficit / 1000).toFixed(1)} km/s. Osiagnieto max ${(maxAlt / 1000).toFixed(0)} km. Wymagane Delta-v (po stratach): >= ${(REQUIRED_DV / 1000).toFixed(1)} km/s.`;
   }
 
   return {

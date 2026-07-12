@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MissionEvent, EventKind } from '../types/contracts';
+import type { Language } from '../i18n';
 
 // Presentation-layer label mapping (SpaceX-style) — not a contract change.
 const BURNOUT_LABELS = ['MECO', 'SECO', 'TECO'];
@@ -15,7 +16,7 @@ function getLabel(kind: EventKind, burnoutIndex: number): string | null {
     case 'apogee':            return 'APOGEE';
     case 'impact':            return 'IMPACT';
     case 'drag_negligible':   return null; // hide — internal engine detail
-    default:                  return kind.toUpperCase();
+    default:                  return String(kind).toUpperCase();
   }
 }
 
@@ -40,9 +41,12 @@ interface LabeledEvent {
 
 interface Props {
   events: MissionEvent[];
+  lang: Language;
 }
 
-export default function MissionTimeline({ events }: Props) {
+export default function MissionTimeline({ events, lang }: Props) {
+  const isEn = lang === 'en';
+
   // Assign burnout indices to stage_burnout events in time order
   let burnoutIdx = 0;
   const labeled: LabeledEvent[] = [];
@@ -55,7 +59,7 @@ export default function MissionTimeline({ events }: Props) {
 
   return (
     <div className="mission-timeline-wrapper">
-      <h3 className="chart-title">Sekwencja misji</h3>
+      <h3 className="chart-title">{isEn ? 'Mission sequence' : 'Sekwencja misji'}</h3>
       <div className="mission-timeline">
         {labeled.map(({ event, label }, i) => {
           const cls = isHighlight(event.kind)

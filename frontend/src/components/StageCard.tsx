@@ -1,5 +1,5 @@
-import React from 'react';
 import type { Stage } from '../types/contracts';
+import type { Language } from '../i18n';
 
 const G0 = 9.806_65;
 
@@ -19,6 +19,7 @@ interface Props {
   stage: Stage;
   index: number;
   onChange: (updated: Stage) => void;
+  lang: Language;
 }
 
 function NumInput({
@@ -49,7 +50,8 @@ function NumInput({
   );
 }
 
-export default function StageCard({ stage, index, onChange }: Props) {
+export default function StageCard({ stage, index, onChange, lang }: Props) {
+  const isEn = lang === 'en';
   const c = computed(stage);
 
   const set = (key: keyof Stage) => (v: number) =>
@@ -63,29 +65,29 @@ export default function StageCard({ stage, index, onChange }: Props) {
       </h3>
 
       <div className="fields-grid">
-        <NumInput label="Ciąg" value={stage.thrust} unit="N"
+        <NumInput label={isEn ? 'Thrust' : 'Ciag'} value={stage.thrust} unit="N"
           min={1000} max={20_000_000} step={10_000} onChange={set('thrust')} />
         <NumInput label="Isp" value={stage.isp} unit="s"
           min={1} max={455} step={1} onChange={set('isp')} />
-        <NumInput label="Czas pracy" value={stage.burn_time} unit="s"
+        <NumInput label={isEn ? 'Burn time' : 'Czas pracy'} value={stage.burn_time} unit="s"
           min={1} max={2000} step={5} onChange={set('burn_time')} />
-        <NumInput label="Masa sucha" value={stage.dry_mass} unit="kg"
+        <NumInput label={isEn ? 'Dry mass' : 'Masa sucha'} value={stage.dry_mass} unit="kg"
           min={1} max={500_000} step={100} onChange={set('dry_mass')} />
       </div>
 
       <div className="computed-row">
-        <span title="masa paliwa = ciąg / (Isp·g₀) × czas">
-          Paliwo: <strong>{(c.propellantMass / 1000).toFixed(1)} t</strong>
+        <span title={isEn ? 'propellant mass = thrust / (Isp*g0) * burn time' : 'masa paliwa = ciag / (Isp*g0) * czas'}>
+          {isEn ? 'Propellant' : 'Paliwo'}: <strong>{(c.propellantMass / 1000).toFixed(1)} t</strong>
         </span>
-        <span title="masa mokra = sucha + paliwo">
-          Mokra: <strong>{(c.wetMass / 1000).toFixed(1)} t</strong>
+        <span title={isEn ? 'wet mass = dry + propellant' : 'masa mokra = sucha + paliwo'}>
+          {isEn ? 'Wet' : 'Mokra'}: <strong>{(c.wetMass / 1000).toFixed(1)} t</strong>
         </span>
-        <span title="frakcja masowa paliwa (SMAD: 0.80–0.95)">
+        <span title={isEn ? 'propellant mass fraction (SMAD: 0.80-0.95)' : 'frakcja masowa paliwa (SMAD: 0.80-0.95)'}>
           η<sub>m</sub>: <strong className={c.massFraction < 0.8 || c.massFraction > 0.95 ? 'warn' : ''}>
             {(c.massFraction * 100).toFixed(1)}%
           </strong>
         </span>
-        <span title="strumień masy paliwa">
+        <span title={isEn ? 'propellant mass flow' : 'strumien masy paliwa'}>
           ṁ: <strong>{c.massFlow.toFixed(1)} kg/s</strong>
         </span>
       </div>

@@ -1,7 +1,7 @@
-import React from 'react';
 import type { RocketParams } from '../types/contracts';
 import StageCard from './StageCard';
 import { estimateDeltaV } from '../data/syntheticResult';
+import type { Language } from '../i18n';
 
 interface Props {
   params: RocketParams;
@@ -9,11 +9,14 @@ interface Props {
   onSimulate: () => void;
   isLoading: boolean;
   aiAvailable: boolean;
+  lang: Language;
 }
 
 const LOSSES = 1_750; // m/s — from dt_contracts.constants
 
-export default function RocketForm({ params, onChange, onSimulate, isLoading, aiAvailable }: Props) {
+export default function RocketForm({ params, onChange, onSimulate, isLoading, aiAvailable, lang }: Props) {
+  const isEn = lang === 'en';
+
   const dv = estimateDeltaV(params);
   const effectiveDv = dv - LOSSES;
   const liftoffMass = params.stages.reduce((acc, s) => {
@@ -36,8 +39,13 @@ export default function RocketForm({ params, onChange, onSimulate, isLoading, ai
   return (
     <div className="rocket-form">
       <div className="form-header">
-        <h2>Parametry rakiety</h2>
-        <div className="dv-badge" title="Szacowane efektywne Δv = Tsiolkovsky − straty grawitacyjne/aerodynamiczne">
+        <h2>{isEn ? 'Rocket parameters' : 'Parametry rakiety'}</h2>
+        <div
+          className="dv-badge"
+          title={isEn
+            ? 'Estimated effective Delta-v = Tsiolkovsky - gravity/aerodynamic losses'
+            : 'Szacowane efektywne Delta-v = Tsiolkovsky - straty grawitacyjne/aerodynamiczne'}
+        >
           <span className="dv-label">Δv<sub>eff</sub></span>
           <span className={`dv-value ${effectiveDv >= 9300 ? 'ok' : 'nok'}`}>
             {(effectiveDv / 1000).toFixed(1)} km/s
@@ -47,14 +55,14 @@ export default function RocketForm({ params, onChange, onSimulate, isLoading, ai
 
       <div className="stages-list">
         {params.stages.map((stage, i) => (
-          <StageCard key={i} stage={stage} index={i} onChange={updateStage(i)} />
+          <StageCard key={i} stage={stage} index={i} onChange={updateStage(i)} lang={lang} />
         ))}
       </div>
 
       <div className="payload-card">
-        <h3>Ładunek: {params.payload.name}</h3>
+        <h3>{isEn ? 'Payload' : 'Ladunek'}: {params.payload.name}</h3>
         <div className="field">
-          <label>Masa ładunku</label>
+          <label>{isEn ? 'Payload mass' : 'Masa ladunku'}</label>
           <div className="field-row">
             <input
               type="number"
@@ -68,7 +76,7 @@ export default function RocketForm({ params, onChange, onSimulate, isLoading, ai
           </div>
         </div>
         <div className="computed-row">
-          <span>Masa startowa: <strong>{(liftoffMass / 1000).toFixed(1)} t</strong></span>
+          <span>{isEn ? 'Liftoff mass' : 'Masa startowa'}: <strong>{(liftoffMass / 1000).toFixed(1)} t</strong></span>
         </div>
       </div>
 
@@ -78,12 +86,12 @@ export default function RocketForm({ params, onChange, onSimulate, isLoading, ai
           onClick={onSimulate}
           disabled={isLoading}
         >
-          {isLoading ? 'Symulacja…' : 'Przelicz'}
+          {isLoading ? (isEn ? 'Simulating...' : 'Symulacja...') : (isEn ? 'Simulate' : 'Przelicz')}
         </button>
 
         {aiAvailable && (
           <button className="btn-optimize" disabled>
-            Optymalizuj (AI)
+            {isEn ? 'Optimize (AI)' : 'Optymalizuj (AI)'}
           </button>
         )}
       </div>

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { TelemetryFrame, Phase } from '../types/contracts';
+import type { Language } from '../i18n';
+import { localeForLanguage } from '../i18n';
 
 const G0 = 9.806_65;
 
@@ -25,23 +27,27 @@ function tPlus(seconds: number): string {
 
 interface Props {
   telemetry: TelemetryFrame[];
+  lang: Language;
 }
 
-export default function TelemetryHUD({ telemetry }: Props) {
+export default function TelemetryHUD({ telemetry, lang }: Props) {
+  const isEn = lang === 'en';
+  const locale = localeForLanguage(lang);
+
   const [idx, setIdx] = useState(telemetry.length - 1);
   const frame = telemetry[Math.min(idx, telemetry.length - 1)];
   if (!frame) return null;
 
-  const speedKmh = Math.round(frame.speed * 3.6).toLocaleString('pl');
+  const speedKmh = Math.round(frame.speed * 3.6).toLocaleString(locale);
   const altKm    = (frame.altitude / 1000).toFixed(1);
   const gForce   = (frame.acceleration / G0).toFixed(2);
   const massT    = (frame.mass / 1000).toFixed(1);
-  const dynQ     = Math.round(frame.dynamic_pressure).toLocaleString('pl');
+  const dynQ     = Math.round(frame.dynamic_pressure).toLocaleString(locale);
 
   return (
     <div className="hud-wrapper">
       <div className="hud-header">
-        <span className="hud-title">Telemetria lotu</span>
+        <span className="hud-title">{isEn ? 'Flight telemetry' : 'Telemetria lotu'}</span>
         <span className="hud-tplus">{tPlus(frame.t)}</span>
         <span
           className="hud-phase"
@@ -49,7 +55,7 @@ export default function TelemetryHUD({ telemetry }: Props) {
         >
           {PHASE_LABELS[frame.phase]}
         </span>
-        <span className="hud-stage">Stage {frame.active_stage + 1}</span>
+        <span className="hud-stage">{isEn ? 'Stage' : 'Stopien'} {frame.active_stage + 1}</span>
       </div>
 
       <div className="hud-main">

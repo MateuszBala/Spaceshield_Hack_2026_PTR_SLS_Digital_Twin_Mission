@@ -132,12 +132,12 @@ uv sync                                      # install dependencies (one-time)
 uv run uvicorn dt_api.app:app --port 8000   # start API on :8000
 ```
 
-**2. Frontend** (UI) - in a separate terminal:
+**2. Frontend** (UI, English mode) - in a separate terminal:
 
 ```bash
 cd frontend
 npm install        # install dependencies (one-time)
-npm run dev        # start on :5173
+npm run dev:en     # start on :5173 with English UI
 ```
 
 **3. Open** [http://localhost:5173](http://localhost:5173). The

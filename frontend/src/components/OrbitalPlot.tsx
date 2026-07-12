@@ -2,8 +2,9 @@
 // UWAGA architektoniczna: komponent tylko prezentuje dane z TelemetryFrame —
 // nie liczy żadnej fizyki. x, y płyną z silnika przez SimResult.telemetry.
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import type { TelemetryFrame, MissionEvent, OrbitVerdict } from '../types/contracts';
+import type { Language } from '../i18n';
 
 // Źródło: dt_contracts.constants.R_EARTH — NIE wpisuj własnej wartości.
 const R_EARTH = 6_378_136.49; // m
@@ -114,9 +115,12 @@ interface Props {
   telemetry: TelemetryFrame[];
   events: MissionEvent[];
   verdict?: OrbitVerdict;
+  lang: Language;
 }
 
-export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
+export default function OrbitalPlot({ telemetry, events, verdict, lang }: Props) {
+  const isEn = lang === 'en';
+
   const orbitEllipsePts = useMemo<[number, number][] | null>(() => {
     const el = verdict?.elements;
     if (!el || !verdict.reached_orbit || telemetry.length < 1) return null;
@@ -245,14 +249,18 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     <>
     <div className="chart-wrapper">
       <div className="chart-header">
-        <h3 className="chart-title">Tor lotu — układ inercjalny (x, y)</h3>
-        <span className="chart-unit-badge">ECI · środek Ziemi = (0, 0)</span>
+        <h3 className="chart-title">
+          {isEn ? 'Flight path - inertial frame (x, y)' : 'Tor lotu - uklad inercjalny (x, y)'}
+        </h3>
+        <span className="chart-unit-badge">
+          {isEn ? 'ECI - Earth center = (0, 0)' : 'ECI - srodek Ziemi = (0, 0)'}
+        </span>
       </div>
 
       <svg
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         style={{ width: '100%', maxHeight: SVG_H, display: 'block' }}
-        aria-label="Tor lotu rakiety w układzie inercjalnym"
+        aria-label={isEn ? 'Rocket path in inertial frame' : 'Tor lotu rakiety w ukladzie inercjalnym'}
       >
         {/* Tło */}
         <rect width={SVG_W} height={SVG_H} fill="#070c17" rx="6" />
@@ -277,7 +285,7 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
           fontSize={Math.max(10, earthR * 0.18)}
           fontWeight="700"
         >
-          Ziemia
+          {isEn ? 'Earth' : 'Ziemia'}
         </text>
 
         {/* Pełna elipsa orbitalna (analityczna z elementów keplerowskich) */}
@@ -345,25 +353,25 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
         <g transform={`translate(10, ${SVG_H - 82})`}>
           <rect x="-4" y="-8" width="182" height={ellipseSvgPts ? 90 : 74} fill="#070c17aa" rx="4" />
           <circle cx="8" cy="6" r="4.5" fill="#ff6b35" />
-          <text x="17" y="10" fill="#6a8099" fontSize="9">Start</text>
+          <text x="17" y="10" fill="#6a8099" fontSize="9">{isEn ? 'Launch' : 'Start'}</text>
           <line x1="0" y1="22" x2="18" y2="22" stroke="#00d4ff" strokeWidth="1.6" />
-          <text x="22" y="26" fill="#6a8099" fontSize="9">Wznoszenie / wstawienie</text>
+          <text x="22" y="26" fill="#6a8099" fontSize="9">{isEn ? 'Ascent / insertion' : 'Wznoszenie / wstawienie'}</text>
           {hasOrbit && (
             <>
               <line x1="0" y1="38" x2="18" y2="38" stroke="#00e676" strokeWidth="2.8" />
-              <text x="22" y="42" fill="#6a8099" fontSize="9">Faza orbitalna</text>
+              <text x="22" y="42" fill="#6a8099" fontSize="9">{isEn ? 'Orbital phase' : 'Faza orbitalna'}</text>
             </>
           )}
           {hasFailed && (
             <>
               <line x1="0" y1="38" x2="18" y2="38" stroke="#ff1744" strokeWidth="1.6" strokeDasharray="4 3" />
-              <text x="22" y="42" fill="#6a8099" fontSize="9">Nieudana (FAILED)</text>
+              <text x="22" y="42" fill="#6a8099" fontSize="9">{isEn ? 'Failed phase' : 'Nieudana (FAILED)'}</text>
             </>
           )}
           {ellipseSvgPts && (
             <>
               <line x1="0" y1="54" x2="18" y2="54" stroke="#ffd740" strokeWidth="1.2" strokeDasharray="5 3" opacity="0.65" />
-              <text x="22" y="58" fill="#6a8099" fontSize="9">Elipsa orbitalna (kepler.)</text>
+              <text x="22" y="58" fill="#6a8099" fontSize="9">{isEn ? 'Orbital ellipse (Kepler)' : 'Elipsa orbitalna (kepler.)'}</text>
             </>
           )}
         </g>
@@ -374,13 +382,19 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
     {flatPts && flatToSvg && (
       <div className="chart-wrapper">
         <div className="chart-header">
-          <h3 className="chart-title">Przekrój boczny — opuszczanie atmosfery Ziemi</h3>
-          <span className="chart-unit-badge">dystans od startu vs. wysokość · maks. 400 km</span>
+          <h3 className="chart-title">
+            {isEn ? 'Side profile - leaving Earth atmosphere' : 'Przekroj boczny - opuszczanie atmosfery Ziemi'}
+          </h3>
+          <span className="chart-unit-badge">
+            {isEn
+              ? 'downrange distance vs altitude - max 400 km'
+              : 'dystans od startu vs. wysokosc - maks. 400 km'}
+          </span>
         </div>
         <svg
           viewBox={`0 0 ${FGW} ${FGH}`}
           style={{ width: '100%', maxHeight: FGH, display: 'block' }}
-          aria-label="Faza wznoszenia — widok boczny"
+          aria-label={isEn ? 'Ascent phase side view' : 'Faza wznoszenia - widok boczny'}
         >
           {/* Tło */}
           <rect width={FGW} height={FGH} fill="#070c17" rx="6" />
@@ -398,7 +412,9 @@ export default function OrbitalPlot({ telemetry, events, verdict }: Props) {
 
           {/* Linia powierzchni Ziemi */}
           <line x1="0" y1={flatGroundY} x2={FGW} y2={flatGroundY} stroke="#1a4a80" strokeWidth="2.5" />
-          <text x={FGW / 2} y={flatGroundY + 18} fill="#2a6aaa" fontSize="10" fontWeight="700" textAnchor="middle">ZIEMIA</text>
+          <text x={FGW / 2} y={flatGroundY + 18} fill="#2a6aaa" fontSize="10" fontWeight="700" textAnchor="middle">
+            {isEn ? 'EARTH' : 'ZIEMIA'}
+          </text>
 
           {/* Trajektoria wznoszenia */}
           {flatTrajPts && (

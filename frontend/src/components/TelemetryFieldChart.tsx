@@ -3,7 +3,6 @@
 // per-field charts. When new fields arrive from the engine (e.g. thrust),
 // add another instance — no code changes needed here.
 
-import React from 'react';
 import {
   AreaChart,
   Area,
