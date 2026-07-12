@@ -1,5 +1,16 @@
 # 🛰️ Rocket Digital Twin
 
+[![Python](https://img.shields.io/badge/Python-3.13.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![pyenv](https://img.shields.io/badge/pyenv-required-4B8BBE?logo=python&logoColor=white)](https://github.com/pyenv/pyenv)
+[![uv](https://img.shields.io/badge/uv-workspace-2E3440?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![NumPy](https://img.shields.io/badge/NumPy-2.x-013243?logo=numpy&logoColor=white)](https://numpy.org/)
+[![SciPy](https://img.shields.io/badge/SciPy-1.13+-8CAAE6?logo=scipy&logoColor=white)](https://scipy.org/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-2.x-E92063?logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
+
 > Cyfrowy bliźniak rakiety wynoszącej satelitę na niską orbitę okołoziemską (LEO).
 > Zmień parametr → przelicz → zobacz wpływ na misję.
 
