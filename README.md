@@ -18,6 +18,8 @@
 
 ---
 
+![Widok głównego okna aplikacji webowej](docs/imgs/RocketDigitaTwin_WebView.png)
+
 ## Motywacja
 
 Projektowanie rakiety nośnej to gra kompromisów: masa stopni, ciąg silników, liczba
