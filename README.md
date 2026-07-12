@@ -35,6 +35,77 @@ okres), sekwencję misji (start, separacje, wejście na orbitę), telemetrię w 
 (prędkość, wysokość, przeciążenie, ciśnienie dynamiczne) oraz wizualizację toru lotu
 i orbity wokół Ziemi.
 
+## Wymagania systemowe (Debian)
+
+Przed przejściem do sekcji **Szybki start** zainstaluj poniższe zależności systemowe.
+
+**1. Narzędzia systemowe (APT):**
+
+```bash
+sudo apt update
+sudo apt install -y curl ca-certificates git build-essential
+```
+
+**2. Python 3.13 przez `pyenv` (zalecane na Debianie):**
+
+Zainstaluj zależności wymagane do budowania Pythona:
+
+```bash
+sudo apt install -y make libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+	libsqlite3-dev libffi-dev liblzma-dev tk-dev xz-utils wget llvm
+```
+
+Zainstaluj `pyenv`:
+
+```bash
+curl https://pyenv.run | bash
+```
+
+Dodaj `pyenv` do konfiguracji shella (bash):
+
+```bash
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+exec "$SHELL"
+```
+
+Zainstaluj Python 3.13 i ustaw go lokalnie dla tego repozytorium:
+
+```bash
+pyenv install 3.13.7
+pyenv local 3.13.7
+python --version
+```
+
+Po `pyenv local` w katalogu repozytorium pojawi się plik `.python-version`, dzięki czemu
+wszystkie komendy `uv` będą używać właściwej wersji Pythona lokalnie.
+
+**3. Menedżer `uv` (backend):**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Po instalacji upewnij się, że `uv` jest w `PATH`:
+
+```bash
+uv --version
+```
+
+**4. Node.js 18+ oraz `npm` (frontend):**
+
+```bash
+sudo apt install -y nodejs npm
+node --version
+npm --version
+```
+
+> Dla Debiana stable pakiet `nodejs` bywa starszy niż 18. Jeśli tak, doinstaluj Node.js 18+
+> z oficjalnego repozytorium NodeSource lub użyj menedżera `nvm`.
+
+Po spełnieniu powyższych wymagań możesz przejść do sekcji **Szybki start**.
+
 ## Szybki start
 
 Wymagania: **Python 3.13** + [`uv`](https://github.com/astral-sh/uv), **Node.js 18+** + `npm`.
