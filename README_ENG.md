@@ -150,11 +150,15 @@ running. Click **Recompute** to run the golden preset simulation.
 
 The [presentation/](presentation/) directory contains submission materials:
 
+English technical documentation is available in [documentation.pdf](presentation/documentation.pdf).
+Presentation files are provided in Polish (PL).
+
 | File | Description |
 |------|------|
-| [Rocket_Digital_Twin__SpatiumCavum_team.pptx](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pptx) | Presentation (slides, editable) |
-| [Rocket_Digital_Twin__SpatiumCavum_team.pdf](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf) | Presentation (PDF) |
-| [dokumentacja.pdf](presentation/dokumentacja.pdf) | Full technical documentation: setup, UI description, physics foundations (formulas), architecture |
+| [documentation.pdf](presentation/documentation.pdf) | Full technical documentation (English / EN): setup, UI description, physics foundations (formulas), architecture |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pptx](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pptx) | Presentation (slides, editable, Polish / PL) |
+| [Rocket_Digital_Twin__SpatiumCavum_team.pdf](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf) | Presentation (PDF, Polish / PL) |
+| [dokumentacja.pdf](presentation/dokumentacja.pdf) | Full technical documentation (Polish / PL): setup, UI description, physics foundations (formulas), architecture |
 
 ## Repository map
 
