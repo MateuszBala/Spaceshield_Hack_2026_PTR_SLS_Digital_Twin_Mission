@@ -26,6 +26,8 @@
 
 [Prezentacja projektu](presentation/Rocket_Digital_Twin__SpatiumCavum_team.pdf)
 
+[Opis wyzwania na hackathonie](docs/challenge/Satellite_Launch_System_%20Digital%20Twin%20Mission_PL.pdf)
+
 ## Motywacja
 
 Projektowanie rakiety nośnej to gra kompromisów: masa stopni, ciąg silników, liczba

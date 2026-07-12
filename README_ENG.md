@@ -20,6 +20,8 @@
 
 ![Main web application window view](docs/imgs/RocketDigitaTwin_WebView.png)
 
+[Hackathon challenge description](docs/challenge/Satellite_Launch_System_%20Digital%20Twin%20Mission_ENG.pdf)
+
 ## Motivation
 
 Designing a launch vehicle is a game of trade-offs: stage mass, engine thrust, number
